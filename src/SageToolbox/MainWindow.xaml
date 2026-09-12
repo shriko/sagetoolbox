@@ -18,7 +18,6 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -28,20 +27,45 @@
                 <TextBlock Grid.Row="1" Text="Administration Sage" FontSize="12"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16" />
 
-                <Border Grid.Row="2" Style="{StaticResource CardBorder}" Margin="0,0,0,12" Padding="10">
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Background="Transparent">
                     <StackPanel>
-                        <TextBlock Text="Info. Base en cours" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
-                        <TextBlock x:Name="DbNameText" Text="Aucune base connectée" TextWrapping="Wrap" FontSize="12" />
-                        <TextBlock x:Name="DbProductsText" Text="" TextWrapping="Wrap" FontSize="11"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" />
-                        <TextBlock x:Name="DbSizeText" Text="" TextWrapping="Wrap" FontSize="11"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
-                        <TextBlock x:Name="DbPathText" Text="" TextWrapping="Wrap" FontSize="10"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
-                    </StackPanel>
-                </Border>
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="Info. Base en cours" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                                <TextBlock x:Name="DbNameText" Text="Aucune base connectée" TextWrapping="Wrap" FontSize="12" />
+                                <TextBlock x:Name="DbProductsText" Text="" TextWrapping="Wrap" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" />
+                                <TextBlock x:Name="DbSizeText" Text="" TextWrapping="Wrap" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                                <TextBlock x:Name="DbPathText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
 
-                <StackPanel Grid.Row="4">
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="Info. Instance SQL" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                                <TextBlock x:Name="InstanceNotConnectedText" Text="Non connecté" TextWrapping="Wrap" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock x:Name="InstanceVersionText" Text="" TextWrapping="Wrap" FontSize="11" Visibility="Collapsed" />
+                                <TextBlock x:Name="InstanceEditionText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" Visibility="Collapsed" />
+                                <TextBlock x:Name="InstanceAuthText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" Visibility="Collapsed" />
+                                <TextBlock x:Name="InstanceFilestreamText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" Visibility="Collapsed" />
+                                <TextBlock x:Name="InstanceDataPathText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" Visibility="Collapsed" />
+                                <TextBlock x:Name="InstanceLogPathText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" Visibility="Collapsed" />
+                                <TextBlock x:Name="InstanceBackupPathText" Text="" TextWrapping="Wrap" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" Visibility="Collapsed" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="3">
                     <TextBlock Text="Thème" Style="{StaticResource SectionLabel}" Margin="0,0,0,4" />
                     <ComboBox x:Name="ThemeCombo" SelectionChanged="ThemeCombo_SelectionChanged">
                         <ComboBoxItem Content="Système" />
@@ -110,10 +134,12 @@
                     <Border Style="{StaticResource CardBorder}">
                         <StackPanel>
                             <TextBlock Text="⚙️ Serveur &amp; Instance" Style="{StaticResource CardTitle}" />
-                            <UniformGrid Columns="3" Rows="1">
-                                <Button x:Name="BtnOptimizeAll" Content="Optimiser TOUTES les bases" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnOptimizeAll_Click" />
-                                <Button x:Name="BtnGenAllConnFiles" Content="Générer TOUS les fichiers" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnGenAllConnFiles_Click" />
-                                <Button x:Name="BtnCopyUsers" Content="Copier les utilisateurs" Style="{StaticResource ActionButton}" Click="BtnCopyUsers_Click" />
+                            <UniformGrid Columns="3">
+                                <Button x:Name="BtnOptimizeAll" Content="Optimiser TOUTES les bases" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnOptimizeAll_Click" />
+                                <Button x:Name="BtnGenAllConnFiles" Content="Générer TOUS les fichiers" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnGenAllConnFiles_Click" />
+                                <Button x:Name="BtnCopyUsers" Content="Copier les utilisateurs" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnCopyUsers_Click" />
+                                <Button x:Name="BtnRestoreSql" Content="Restauration SQL en lot" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnRestoreSql_Click" />
+                                <Button x:Name="BtnBackupAll" Content="Sauvegarder TOUTES les bases" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnBackupAll_Click" />
                             </UniformGrid>
                         </StackPanel>
                     </Border>

@@ -57,6 +57,14 @@ public sealed class DatabaseManager
         CurrentDatabase = database;
     }
 
+    /// <summary>Connexion au serveur seul, sans base sélectionnée — pour les opérations
+    /// "Serveur &amp; Instance" qui ne nécessitent pas de base précise.</summary>
+    public void ConnectInstanceOnly(string instance)
+    {
+        CurrentInstance = instance;
+        CurrentDatabase = null;
+    }
+
     public void Disconnect()
     {
         CurrentInstance = null;

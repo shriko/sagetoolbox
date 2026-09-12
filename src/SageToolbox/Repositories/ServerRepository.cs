@@ -17,6 +17,47 @@ namespace SageToolbox.Repositories;
 /// </summary>
 public sealed class ServerRepository
 {
+    /// <summary>
+    /// Informations techniques de l'instance SQL Server (version, édition/architecture,
+    /// mode d'authentification, répertoires par défaut, état FILESTREAM) — affichées dans
+    /// le bandeau latéral dès la connexion (instance seule ou base précise).
+    /// </summary>
+    public async Task<SqlInstanceInfo> GetInstanceInfoAsync(string instance)
+    {
+        await using var conn = DatabaseManager.Instance.CreateConnection(instance, "master");
+        await conn.OpenAsync();
+
+        const string sql = @"
+            SELECT
+                CAST(SERVERPROPERTY('ProductVersion') AS NVARCHAR(50)) AS ProductVersion,
+                CAST(SERVERPROPERTY('ProductLevel') AS NVARCHAR(50)) AS ProductLevel,
+                CAST(SERVERPROPERTY('Edition') AS NVARCHAR(100)) AS Edition,
+                CAST(SERVERPROPERTY('IsIntegratedSecurityOnly') AS INT) AS IsIntegratedSecurityOnly,
+                CAST(SERVERPROPERTY('InstanceDefaultDataPath') AS NVARCHAR(500)) AS DataPath,
+                CAST(SERVERPROPERTY('InstanceDefaultLogPath') AS NVARCHAR(500)) AS LogPath,
+                CAST(SERVERPROPERTY('InstanceDefaultBackupPath') AS NVARCHAR(500)) AS BackupPath,
+                CAST(SERVERPROPERTY('FilestreamConfiguredLevel') AS INT) AS FilestreamLevel,
+                CAST(SERVERPROPERTY('FilestreamShareName') AS NVARCHAR(100)) AS FilestreamShareName";
+
+        await using var cmd = new SqlCommand(sql, conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+            throw new InvalidOperationException("Impossible de lire les informations de l'instance.");
+
+        return new SqlInstanceInfo
+        {
+            ProductVersion = reader["ProductVersion"] as string ?? string.Empty,
+            ProductLevel = reader["ProductLevel"] as string ?? string.Empty,
+            Edition = reader["Edition"] as string ?? string.Empty,
+            WindowsAuthOnly = reader["IsIntegratedSecurityOnly"] is int i && i == 1,
+            DataPath = reader["DataPath"] as string ?? string.Empty,
+            LogPath = reader["LogPath"] as string ?? string.Empty,
+            BackupPath = reader["BackupPath"] as string ?? string.Empty,
+            FilestreamLevel = reader["FilestreamLevel"] as int? ?? 0,
+            FilestreamShareName = reader["FilestreamShareName"] as string
+        };
+    }
+
     public async Task<List<string>> DiscoverSageDatabasesAsync(string instance)
     {
         var result = new List<string>();

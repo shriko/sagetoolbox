@@ -8,6 +8,11 @@ public sealed class AppConfig
     public string? LastInstance { get; set; }
     public string? LastDatabase { get; set; }
     public string Theme { get; set; } = "System";
+    public string? LastRestoreBakFolder { get; set; }
+    public string? LastRestoreConnFilesFolder { get; set; }
+    public bool LastRestoreReplaceExisting { get; set; }
+    public string? LastBackupFolder { get; set; }
+    public bool LastBackupUseCompression { get; set; } = true;
 }
 
 /// <summary>

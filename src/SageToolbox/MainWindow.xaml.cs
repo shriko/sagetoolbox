@@ -23,7 +23,12 @@ public partial class MainWindow : Window
     private readonly AdminRepository _adminRepository = new();
     private readonly ObservableCollection<LogEntry> _logEntries = new();
 
-    private readonly List<Button> _connectionDependentButtons = new();
+    /// <summary>Boutons nécessitant une base précisément sélectionnée.</summary>
+    private readonly List<Button> _databaseButtons = new();
+
+    /// <summary>Boutons "Serveur &amp; Instance", qui ne nécessitent que l'instance
+    /// (utilisables même en connexion instance seule, sans base sélectionnée).</summary>
+    private readonly List<Button> _instanceButtons = new();
 
     public MainWindow()
     {
@@ -33,14 +38,17 @@ public partial class MainWindow : Window
         LogItemsControl.ItemsSource = _logEntries;
         Logger.Instance.EntryLogged += OnLogEntry;
 
-        _connectionDependentButtons.AddRange(new[]
+        _databaseButtons.AddRange(new[]
         {
             BtnOptimizeDb, BtnGenConnFiles, BtnListTriggers, BtnIntegrityCompta, BtnIntegrityCial,
             BtnDecloture, BtnDevaliderFacture, BtnCreerInfoLibre, BtnCorrigerAdresses, BtnCorrigerAccents,
-            BtnResetAdminPwd, BtnPurgeGhosts,
-            BtnOptimizeAll, BtnGenAllConnFiles, BtnCopyUsers
+            BtnResetAdminPwd, BtnPurgeGhosts
         });
-        SetConnectionDependentButtonsEnabled(false);
+        _instanceButtons.AddRange(new[]
+        {
+            BtnOptimizeAll, BtnGenAllConnFiles, BtnCopyUsers, BtnRestoreSql, BtnBackupAll
+        });
+        RefreshButtonStates();
 
         InstanceInput.Text = ConfigManager.Instance.Config.LastInstance ?? string.Empty;
         DatabaseInput.Text = ConfigManager.Instance.Config.LastDatabase ?? string.Empty;
@@ -69,10 +77,23 @@ public partial class MainWindow : Window
         });
     }
 
-    private void SetConnectionDependentButtonsEnabled(bool enabled)
+    /// <summary>Désactive tous les boutons dépendant d'une connexion (pendant une action en cours).</summary>
+    private void DisableAllConnectionButtons()
     {
-        foreach (var button in _connectionDependentButtons)
-            button.IsEnabled = enabled;
+        foreach (var button in _databaseButtons) button.IsEnabled = false;
+        foreach (var button in _instanceButtons) button.IsEnabled = false;
+    }
+
+    /// <summary>Réactive les boutons en fonction de l'état de connexion courant : les
+    /// boutons "Serveur &amp; Instance" dès qu'une instance est connectée, les boutons
+    /// niveau base seulement si une base précise est aussi sélectionnée.</summary>
+    private void RefreshButtonStates()
+    {
+        var instanceConnected = DatabaseManager.Instance.CurrentInstance is not null;
+        var databaseConnected = DatabaseManager.Instance.CurrentDatabase is not null;
+
+        foreach (var button in _instanceButtons) button.IsEnabled = instanceConnected;
+        foreach (var button in _databaseButtons) button.IsEnabled = databaseConnected;
     }
 
     // ----- Connexion -----
@@ -81,13 +102,16 @@ public partial class MainWindow : Window
     {
         var instance = InstanceInput.Text.Trim();
         var database = DatabaseInput.Text.Trim();
-        if (string.IsNullOrEmpty(instance) || string.IsNullOrEmpty(database))
+        if (string.IsNullOrEmpty(instance))
         {
-            Logger.Instance.Warning("Merci de renseigner l'instance SQL et la base de données.");
+            Logger.Instance.Warning("Merci de renseigner l'instance SQL.");
             return;
         }
 
-        await ConnectAsync(instance, database);
+        if (string.IsNullOrEmpty(database))
+            await ConnectInstanceOnlyAsync(instance);
+        else
+            await ConnectAsync(instance, database);
     }
 
     private void OpenMaeButton_Click(object sender, RoutedEventArgs e)
@@ -139,7 +163,7 @@ public partial class MainWindow : Window
             DatabaseManager.Instance.Connect(instance, database);
             ConfigManager.Instance.SaveLastConnection(instance, database);
             Logger.Instance.Success($"Connecté à {database} sur {instance}.");
-            SetConnectionDependentButtonsEnabled(true);
+            RefreshButtonStates();
 
             DbNameText.Text = database;
             DbProductsText.Text = "Chargement des informations...";
@@ -153,6 +177,76 @@ public partial class MainWindow : Window
             DbSizeText.Text = $"Data: {info.DataSizeMb} Mo  |  Log: {info.LogSizeMb} Mo" +
                                (info.FileStreamSizeMb > 0 ? $"  |  FS: {info.FileStreamSizeMb} Mo" : string.Empty);
             DbPathText.Text = info.PhysicalPath;
+
+            await LoadInstanceInfoAsync(instance);
+        }
+        catch (Exception ex)
+        {
+            Logger.Instance.Error($"Erreur de connexion : {ex.Message}");
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
+    }
+
+    /// <summary>Charge et affiche les informations techniques de l'instance SQL (version,
+    /// édition, authentification, répertoires, FILESTREAM) dans le bandeau latéral.</summary>
+    private async Task LoadInstanceInfoAsync(string instance)
+    {
+        try
+        {
+            var info = await _serverRepository.GetInstanceInfoAsync(instance);
+
+            InstanceNotConnectedText.Visibility = Visibility.Collapsed;
+            foreach (var tb in new[]
+            {
+                InstanceVersionText, InstanceEditionText, InstanceAuthText,
+                InstanceFilestreamText, InstanceDataPathText, InstanceLogPathText, InstanceBackupPathText
+            })
+                tb.Visibility = Visibility.Visible;
+
+            InstanceVersionText.Text = info.VersionLabel;
+            InstanceEditionText.Text = info.Edition;
+            InstanceAuthText.Text = $"Authentification : {info.AuthModeLabel}";
+            InstanceFilestreamText.Text = $"FILESTREAM : {info.FilestreamLabel}";
+            InstanceDataPathText.Text = $"Data : {info.DataPath}";
+            InstanceLogPathText.Text = $"Log : {info.LogPath}";
+            InstanceBackupPathText.Text = $"Backup : {info.BackupPath}";
+        }
+        catch (Exception ex)
+        {
+            Logger.Instance.Warning($"Impossible de lire les informations de l'instance : {ex.Message}");
+        }
+    }
+
+    /// <summary>Connexion à l'instance seule, sans base sélectionnée — n'active que les
+    /// fonctions "Serveur &amp; Instance".</summary>
+    private async Task ConnectInstanceOnlyAsync(string instance)
+    {
+        Mouse.OverrideCursor = Cursors.Wait;
+        try
+        {
+            Logger.Instance.Info($"Connexion à l'instance {instance} (sans base sélectionnée)...");
+            var (success, error) = await DatabaseManager.Instance.TestConnectionAsync(instance, "master");
+            if (!success)
+            {
+                Logger.Instance.Error($"Échec de connexion : {error}");
+                return;
+            }
+
+            DatabaseManager.Instance.ConnectInstanceOnly(instance);
+            ConfigManager.Instance.Config.LastInstance = instance;
+            ConfigManager.Instance.Save();
+            Logger.Instance.Success($"Connecté à l'instance {instance} (fonctions Serveur & Instance disponibles).");
+            RefreshButtonStates();
+
+            DbNameText.Text = "Aucune base sélectionnée";
+            DbProductsText.Text = "Connecté à l'instance uniquement";
+            DbSizeText.Text = string.Empty;
+            DbPathText.Text = string.Empty;
+
+            await LoadInstanceInfoAsync(instance);
         }
         catch (Exception ex)
         {
@@ -191,7 +285,7 @@ public partial class MainWindow : Window
     {
         if (!Confirm(label, confirmWarning)) return;
 
-        SetConnectionDependentButtonsEnabled(false);
+        DisableAllConnectionButtons();
         Mouse.OverrideCursor = Cursors.Wait;
         Logger.Instance.Info($"{label}...");
         try
@@ -206,7 +300,7 @@ public partial class MainWindow : Window
         finally
         {
             Mouse.OverrideCursor = null;
-            SetConnectionDependentButtonsEnabled(true);
+            RefreshButtonStates();
         }
     }
 
@@ -444,6 +538,18 @@ public partial class MainWindow : Window
     private void BtnCopyUsers_Click(object sender, RoutedEventArgs e)
     {
         var window = new CopyUsersWindow { Owner = this };
+        window.ShowDialog();
+    }
+
+    private void BtnRestoreSql_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new RestorationWindow { Owner = this };
+        window.ShowDialog();
+    }
+
+    private void BtnBackupAll_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new BackupAllWindow { Owner = this };
         window.ShowDialog();
     }
 }

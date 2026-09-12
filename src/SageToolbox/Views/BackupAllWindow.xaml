@@ -1,0 +1,41 @@
+<Window x:Class="SageToolbox.Views.BackupAllWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Sauvegarder toutes les bases"
+        Icon="/Assets/SageToolbox.ico"
+        Height="300" Width="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Topmost="True">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,14"
+                       Text="Sauvegarde toutes les bases de l'instance connectée, à l'exception des bases système (master, model, msdb, tempdb)." />
+
+            <TextBlock Grid.Row="1" Text="Dossier de destination des sauvegardes" Margin="0,0,0,6" />
+            <Grid Grid.Row="2" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="BackupFolderInput" Grid.Column="0" Margin="0,0,8,0" />
+                <Button x:Name="BrowseButton" Grid.Column="1" Content="Parcourir..." Style="{StaticResource SecondaryButton}"
+                        Width="100" HorizontalContentAlignment="Center" Click="BrowseButton_Click" />
+            </Grid>
+
+            <CheckBox x:Name="CompressionCheckBox" Grid.Row="3" Content="Activer la compression" Margin="0,0,0,10" />
+
+            <Button Grid.Row="5" Content="Sauvegarder" Style="{StaticResource ActionButton}"
+                    Height="34" HorizontalContentAlignment="Center" Click="Sauvegarder_Click" />
+        </Grid>
+    </Grid>
+</Window>

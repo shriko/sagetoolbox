@@ -1,0 +1,54 @@
+<Window x:Class="SageToolbox.Views.RestorationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Restauration SQL en lot"
+        Icon="/Assets/SageToolbox.ico"
+        Height="360" Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Topmost="True">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,14"
+                       Text="Restaure tous les fichiers .bak d'un dossier vers l'instance connectée (fichiers .mdf/.ldf redirigés vers les répertoires par défaut de l'instance), puis optimise et génère les fichiers de connexion de chaque base restaurée." />
+
+            <TextBlock Grid.Row="1" Text="Dossier des fichiers .bak" Margin="0,0,0,6" />
+            <Grid Grid.Row="2" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="BakFolderInput" Grid.Column="0" Margin="0,0,8,0" />
+                <Button x:Name="BrowseBakButton" Grid.Column="1" Content="Parcourir..." Style="{StaticResource SecondaryButton}"
+                        Width="100" HorizontalContentAlignment="Center" Click="BrowseBakButton_Click" />
+            </Grid>
+
+            <TextBlock Grid.Row="3" Text="Dossier des fichiers de connexion générés" Margin="0,0,0,6" />
+            <Grid Grid.Row="4" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="ConnFilesFolderInput" Grid.Column="0" Margin="0,0,8,0" />
+                <Button x:Name="BrowseConnFilesButton" Grid.Column="1" Content="Parcourir..." Style="{StaticResource SecondaryButton}"
+                        Width="100" HorizontalContentAlignment="Center" Click="BrowseConnFilesButton_Click" />
+            </Grid>
+
+            <CheckBox x:Name="ReplaceExistingCheckBox" Grid.Row="5" Content="Remplacer les bases existantes" Margin="0,0,0,10" />
+
+            <Button Grid.Row="7" Content="Restaurer" Style="{StaticResource DangerButton}"
+                    Height="34" HorizontalContentAlignment="Center" Click="Restaurer_Click" />
+        </Grid>
+    </Grid>
+</Window>
