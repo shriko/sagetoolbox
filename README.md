@@ -10,8 +10,10 @@ Réécriture en **C# / WPF (.NET 8)** de l'outil historique `AIG_Toolbox.py` (Py
 
 ### Connexion
 - Connexion manuelle (instance SQL + base) ou via fichier `.mae`
+- Connexion à une **instance seule**, sans base sélectionnée (champ base vide) — n'active alors que les fonctions "Serveur & Instance"
 - Mémorisation de la dernière connexion
 - Panneau d'information sur la base connectée (modules Sage installés, tailles des fichiers, chemin physique)
+- Panneau d'information sur l'**instance SQL** (version, édition/architecture, mode d'authentification, état FILESTREAM, répertoires par défaut data/log/backup)
 
 ### Maintenance (base)
 - **Optimiser la base** : `AUTO_CLOSE OFF`, `RECOVERY SIMPLE`, niveau de compatibilité aligné sur la version réelle de SQL Server, activation FILESTREAM (accès complet, répertoire = nom de la base), correction des noms logiques de fichiers (alignés sur le nom de la base), réassociation `USER_CBASE` → `APPL_CBASE`. Bloque l'opération si des utilisateurs sont connectés à la base.
@@ -35,11 +37,14 @@ Réécriture en **C# / WPF (.NET 8)** de l'outil historique `AIG_Toolbox.py` (Py
 - Optimisation de toutes les bases Sage de l'instance
 - Génération des fichiers de connexion pour toutes les bases
 - Copie des utilisateurs/droits entre deux bases
+- **Restauration SQL en lot** : restaure tous les fichiers `.bak` d'un dossier, fichiers `.mdf`/`.ldf`/FILESTREAM redirigés automatiquement vers les répertoires par défaut de l'instance ; chaque base restaurée est ensuite optimisée et ses fichiers de connexion générés automatiquement
+- **Sauvegarde de toutes les bases** (hors bases système), avec option de compression
 
 ### Transverse
 - Console de log temps réel + fichier persistant (`%APPDATA%\SageToolbox\sage_toolbox.log`)
 - Thème Système / Clair / Sombre (y compris la barre de titre native Windows)
 - Confirmation systématique avant toute action, exécution asynchrone
+- Contrôle des utilisateurs connectés avant toute opération d'optimisation/restauration destructive
 
 ---
 
@@ -61,7 +66,7 @@ src/SageToolbox/
 └── App.xaml*        → Point d'entrée, démarrage (authentification → fenêtre principale)
 ```
 
-Chaque fonctionnalité métier vit dans son `Repository` (`ServerRepository`, `AccountingRepository`, `AdminRepository`, `TiersRepository`, `DocumentRepository`, `StructureRepository`, `UsersRepository`, `IntegrityRepository`, `CommercialIntegrityRepository`, `ConnectionFileRepository`), indépendamment de l'UI.
+Chaque fonctionnalité métier vit dans son `Repository` (`ServerRepository`, `AccountingRepository`, `AdminRepository`, `TiersRepository`, `DocumentRepository`, `StructureRepository`, `UsersRepository`, `IntegrityRepository`, `CommercialIntegrityRepository`, `ConnectionFileRepository`, `RestorationRepository`, `BackupRepository`), indépendamment de l'UI.
 
 ## Prérequis
 
@@ -96,3 +101,4 @@ L'exécutable est généré dans `src/SageToolbox/bin/Release/net8.0-windows/win
 
 - `AIG_Toolbox.py` : version Python/Tkinter d'origine (conservée pour référence)
 - `SYNTHESE_V2.md` : synthèse fonctionnelle ayant servi de base à la réécriture
+- `RestaurationSQL.md` : synthèse fonctionnelle (par décompilation d'un outil tiers, sources perdues) ayant servi de base à la fonctionnalité de restauration SQL en lot
