@@ -1,0 +1,34 @@
+<Window x:Class="SageToolbox.Views.CopyUsersWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Copier les utilisateurs"
+        Icon="/Assets/SageToolbox.ico"
+        Height="380" Width="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Topmost="True">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Base source" Margin="0,0,0,6" />
+            <ComboBox x:Name="SourceCombo" Grid.Row="1" Margin="0,0,0,14" />
+
+            <TextBlock Grid.Row="2" Text="Base destination" Margin="0,0,0,6" />
+            <ComboBox x:Name="DestCombo" Grid.Row="3" Margin="0,0,0,14" />
+
+            <TextBlock Grid.Row="4" TextWrapping="Wrap" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Top"
+                       Text="Attention : cette opération écrase les utilisateurs et droits existants dans la base destination (hors compte administrateur). Cette action est irréversible sans sauvegarde préalable." />
+
+            <Button Grid.Row="5" Content="Copier" Style="{StaticResource DangerButton}"
+                    Height="34" HorizontalContentAlignment="Center" Click="Copier_Click" />
+        </Grid>
+    </Grid>
+</Window>

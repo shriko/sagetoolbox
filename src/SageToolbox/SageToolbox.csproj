@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>SageToolbox</AssemblyName>
+    <RootNamespace>SageToolbox</RootNamespace>
+    <ApplicationIcon>Assets\SageToolbox.ico</ApplicationIcon>
+    <Product>Sage Toolbox</Product>
+    <AssemblyTitle>Sage Toolbox</AssemblyTitle>
+
+    <!-- Packaging en exécutable autonome (self-contained), un seul fichier -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\SageToolbox.ico" />
+  </ItemGroup>
+
+</Project>

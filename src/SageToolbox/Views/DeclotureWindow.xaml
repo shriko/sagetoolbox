@@ -1,0 +1,35 @@
+<Window x:Class="SageToolbox.Views.DeclotureWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Déclôture d'exercice"
+        Icon="/Assets/SageToolbox.ico"
+        Height="550" Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Topmost="True">
+    <!-- Fond sur un conteneur externe sans marge : un Grid portant à la fois Margin et
+         Background laisse la zone de marge non peinte (le fond de la fenêtre système,
+         clair, y apparaît alors). -->
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Sélectionner l'exercice à rouvrir" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                <StackPanel x:Name="ExercicesPanel" />
+            </ScrollViewer>
+
+            <CheckBox x:Name="BackupCheckBox" Grid.Row="2" Content="Sauvegarder la base avant l'opération"
+                      IsChecked="True" Margin="0,10,0,10" />
+
+            <Button Grid.Row="3" Content="Valider" Style="{StaticResource ActionButton}"
+                    Height="34" HorizontalContentAlignment="Center" Click="Valider_Click" />
+        </Grid>
+    </Grid>
+</Window>

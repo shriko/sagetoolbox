@@ -1,0 +1,29 @@
+<Window x:Class="SageToolbox.Views.DevaliderFactureWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dévalider une facture"
+        Icon="/Assets/SageToolbox.ico"
+        Height="260" Width="340"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Topmost="True">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="N° de pièce" Margin="0,0,0,6" />
+            <TextBox x:Name="PieceInput" Grid.Row="1" Height="30" />
+
+            <ListBox x:Name="CandidatesList" Grid.Row="2" Margin="0,10,0,10" Visibility="Collapsed"
+                     DisplayMemberPath="Libelle" />
+
+            <Button Grid.Row="3" Content="Dévalider" Style="{StaticResource DangerButton}"
+                    Height="32" HorizontalContentAlignment="Center" Click="Devalider_Click" />
+        </Grid>
+    </Grid>
+</Window>
