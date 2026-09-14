@@ -159,10 +159,9 @@ public sealed class ServerRepository
     }
 
     /// <summary>
-    /// Nombre de connexions actives sur la base, hors la connexion "master" utilisée par
-    /// l'outil lui-même pour piloter l'optimisation (sharedConnection, elle-même connectée
-    /// à master, pas à la base cible, donc jamais comptée ici de toute façon). Utilisé pour
-    /// bloquer "Optimiser la base" si quelqu'un d'autre est connecté.
+    /// Connexions actives sur la base, hors la connexion "master" utilisée par l'outil
+    /// lui-même pour piloter l'optimisation. Utilisé pour avertir avant "Optimiser la
+    /// base" si quelqu'un d'autre est connecté (n'empêche plus l'opération).
     /// </summary>
     public async Task<List<string>> GetActiveConnectionsAsync(string instance, string database)
     {
@@ -187,14 +186,14 @@ public sealed class ServerRepository
 
     /// <summary>
     /// AUTO_CLOSE OFF, RECOVERY SIMPLE, ajustement du COMPATIBILITY_LEVEL à la version
-    /// SQL Server réellement installée, activation FILESTREAM (accès non transactionnel
-    /// complet, répertoire = nom de la base), correction des noms logiques de fichiers
-    /// (ROWS -> nom de la base, LOG -> nom de la base + "_Log" — un incident réel a montré
-    /// des bases copiées depuis un modèle "GEDEV" gardant ce nom logique au lieu du nom
-    /// réel), puis — seulement si la base est une base Sage (cbsystable présente) — ALTER
-    /// AUTHORIZATION vers sa et réassociation USER_CBASE -> login APPL_CBASE. Portage
-    /// étendu de maj_db/maj_all_db (V1). Nécessite une connexion autocommit (ALTER
-    /// DATABASE ne peut pas s'exécuter dans une transaction explicite).
+    /// SQL Server réellement installée, puis — seulement si la base est une base Sage
+    /// (cbsystable présente) — ALTER AUTHORIZATION vers sa et réassociation USER_CBASE ->
+    /// login APPL_CBASE. Portage de maj_db/maj_all_db (V1). Nécessite une connexion
+    /// autocommit (ALTER DATABASE ne peut pas s'exécuter dans une transaction explicite).
+    ///
+    /// L'activation FILESTREAM et la correction des noms logiques de fichiers, ajoutées
+    /// un temps à cette méthode, en ont été retirées à la demande : elles modifiaient la
+    /// structure de la base sans rapport direct avec une "optimisation" au sens strict.
     /// </summary>
     public async Task OptimizeDatabaseAsync(string instance, string database, SqlConnection? sharedConnection = null)
     {
@@ -208,9 +207,6 @@ public sealed class ServerRepository
             var compatLevel = await GetCompatibilityLevelAsync(conn);
             await ExecAsync(conn, $"ALTER DATABASE {quoted} SET COMPATIBILITY_LEVEL = {compatLevel}");
 
-            await EnableFilestreamAsync(conn, database, quoted);
-            await FixLogicalFileNamesAsync(conn, database);
-
             if (await ObjectExistsAsync(conn, database, "cbsystable"))
             {
                 await ExecAsync(conn, $"ALTER AUTHORIZATION ON DATABASE::{quoted} TO [sa]");
@@ -221,68 +217,6 @@ public sealed class ServerRepository
         {
             if (sharedConnection is null)
                 await conn.DisposeAsync();
-        }
-    }
-
-    /// <summary>
-    /// Active FILESTREAM en accès non transactionnel complet (NON_TRANSACTED_ACCESS =
-    /// FULL) avec DIRECTORY_NAME = nom de la base. S'assure d'abord que l'instance
-    /// autorise l'accès FILESTREAM complet (sp_configure 'filestream access level' = 2) ;
-    /// si le service SQL Server n'a jamais eu FILESTREAM activé au niveau Windows (SQL
-    /// Server Configuration Manager), cette étape échoue et l'erreur est simplement
-    /// remontée (pas de tentative de contourner une configuration Windows depuis l'outil).
-    /// </summary>
-    private static async Task EnableFilestreamAsync(SqlConnection conn, string database, string quotedDatabase)
-    {
-        await using (var checkCmd = new SqlCommand(
-            "SELECT CAST(value_in_use AS INT) FROM sys.configurations WHERE name = 'filestream access level'", conn))
-        {
-            var level = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
-            if (level < 2)
-            {
-                await ExecAsync(conn, "EXEC sp_configure 'filestream access level', 2");
-                await ExecAsync(conn, "RECONFIGURE");
-            }
-        }
-
-        // Timeout borné (contrairement aux autres ALTER DATABASE de cette méthode) : cette
-        // commande nécessite un accès exclusif et reste bloquée tant que des sessions sont
-        // connectées à la base — constaté en conditions réelles. La vérification "aucun
-        // utilisateur connecté" côté UI doit empêcher ce cas, mais un filet de sécurité
-        // évite un blocage indéfini de l'application en cas de connexion concurrente.
-        await using var filestreamCmd = new SqlCommand(
-            $"ALTER DATABASE {quotedDatabase} SET FILESTREAM (NON_TRANSACTED_ACCESS = FULL, DIRECTORY_NAME = N'{database.Replace("'", "''")}')",
-            conn) { CommandTimeout = 15 };
-        await filestreamCmd.ExecuteNonQueryAsync();
-    }
-
-    /// <summary>Renomme les fichiers logiques ROWS/LOG pour qu'ils correspondent au nom réel de la base.</summary>
-    private static async Task FixLogicalFileNamesAsync(SqlConnection conn, string database)
-    {
-        var expectedRows = database;
-        var expectedLog = database + "_Log";
-
-        await using var cmd = new SqlCommand(
-            "SELECT name, type_desc FROM sys.master_files WHERE database_id = DB_ID(@db) AND type_desc IN ('ROWS', 'LOG')", conn);
-        cmd.Parameters.AddWithValue("@db", database);
-
-        var renames = new List<(string CurrentName, string NewName)>();
-        await using (var reader = await cmd.ExecuteReaderAsync())
-        {
-            while (await reader.ReadAsync())
-            {
-                var currentName = reader.GetString(0);
-                var typeDesc = reader.GetString(1);
-                var expected = typeDesc == "ROWS" ? expectedRows : expectedLog;
-                if (!string.Equals(currentName, expected, StringComparison.OrdinalIgnoreCase))
-                    renames.Add((currentName, expected));
-            }
-        }
-
-        foreach (var (currentName, newName) in renames)
-        {
-            await ExecAsync(conn,
-                $"ALTER DATABASE {QuoteName(database)} MODIFY FILE (NAME = N'{currentName.Replace("'", "''")}', NEWNAME = N'{newName.Replace("'", "''")}')");
         }
     }
 

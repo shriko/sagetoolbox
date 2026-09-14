@@ -315,12 +315,11 @@ public partial class MainWindow : Window
             var sessions = await _serverRepository.GetActiveConnectionsAsync(instance, database);
             if (sessions.Count > 0)
             {
+                Logger.Instance.Warning($"{sessions.Count} utilisateur(s) connecté(s) à \"{database}\" pendant l'optimisation :");
                 foreach (var s in sessions) Logger.Instance.Info($"    {s}");
-                throw new InvalidOperationException(
-                    $"{sessions.Count} utilisateur(s) connecté(s) à \"{database}\" — déconnectez-les avant d'optimiser la base.");
             }
             await _serverRepository.OptimizeDatabaseAsync(instance, database);
-        }, "Aucun utilisateur ne doit être connecté à la base pendant l'opération.");
+        });
     }
 
     private async void BtnGenConnFiles_Click(object sender, RoutedEventArgs e)
@@ -508,14 +507,12 @@ public partial class MainWindow : Window
             {
                 var sessions = await _serverRepository.GetActiveConnectionsAsync(instance, db);
                 if (sessions.Count > 0)
-                {
-                    Logger.Instance.Warning($"  {db} : ignorée — {sessions.Count} utilisateur(s) connecté(s).");
-                    continue;
-                }
+                    Logger.Instance.Warning($"  {db} : {sessions.Count} utilisateur(s) connecté(s) pendant l'optimisation.");
+
                 Logger.Instance.Info($"  Optimisation de {db}...");
                 await _serverRepository.OptimizeDatabaseAsync(instance, db, conn);
             }
-        }, "Aucun utilisateur ne doit être connecté aux bases pendant l'opération (les bases avec utilisateurs connectés seront ignorées).");
+        });
     }
 
     private async void BtnGenAllConnFiles_Click(object sender, RoutedEventArgs e)
