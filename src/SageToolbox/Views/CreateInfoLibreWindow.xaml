@@ -23,7 +23,13 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Text="Table" Margin="0,0,0,6" />
-            <ComboBox x:Name="TableCombo" Grid.Row="1" Margin="0,0,0,14" />
+            <ComboBox x:Name="TableCombo" Grid.Row="1" Margin="0,0,0,14">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Label}" ToolTip="{Binding Table}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
 
             <TextBlock Grid.Row="2" Text="Nom" Margin="0,0,0,6" />
             <TextBox x:Name="NameInput" Grid.Row="3" Margin="0,0,0,14" />
@@ -38,8 +44,9 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
 
-            <TextBlock Grid.Row="6" Text="Longueur (texte uniquement)" Margin="0,0,0,6" />
-            <TextBox x:Name="LengthInput" Grid.Row="7" Margin="0,0,0,14" IsEnabled="False" />
+            <TextBlock Grid.Row="6" Text="Longueur (texte uniquement, 69 maximum)" Margin="0,0,0,6" />
+            <TextBox x:Name="LengthInput" Grid.Row="7" Margin="0,0,0,14" IsEnabled="False" MaxLength="2"
+                     PreviewTextInput="LengthInput_PreviewTextInput" DataObject.Pasting="LengthInput_Pasting" />
 
             <Button Grid.Row="9" Content="Créer" Style="{StaticResource ActionButton}"
                     Height="34" HorizontalContentAlignment="Center" Click="Creer_Click" />

@@ -29,12 +29,32 @@ public partial class CreateInfoLibreWindow : Window
     {
         var type = TypeCombo.SelectedItem as StructureRepository.InfoLibreType;
         LengthInput.IsEnabled = type?.AllowsCustomLength == true;
-        LengthInput.Text = LengthInput.IsEnabled ? "70" : string.Empty;
+        LengthInput.Text = LengthInput.IsEnabled ? StructureRepository.MaxTextLength.ToString() : string.Empty;
     }
+
+    // Bloque à la saisie tout ce qui ne donnerait pas une longueur entre 1 et 69.
+    private void LengthInput_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        var box = (TextBox)sender;
+        var candidate = box.Text.Remove(box.SelectionStart, box.SelectionLength).Insert(box.SelectionStart, e.Text);
+        e.Handled = !IsValidLength(candidate);
+    }
+
+    private void LengthInput_Pasting(object sender, DataObjectPastingEventArgs e)
+    {
+        var box = (TextBox)sender;
+        var pasted = e.DataObject.GetData(DataFormats.Text) as string ?? string.Empty;
+        var candidate = box.Text.Remove(box.SelectionStart, box.SelectionLength).Insert(box.SelectionStart, pasted);
+        if (!IsValidLength(candidate))
+            e.CancelCommand();
+    }
+
+    private static bool IsValidLength(string text) =>
+        text.All(char.IsAsciiDigit) && (text.Length == 0 || int.Parse(text) is >= 1 and <= StructureRepository.MaxTextLength);
 
     private async void Creer_Click(object sender, RoutedEventArgs e)
     {
-        var table = TableCombo.SelectedItem as string;
+        var table = (TableCombo.SelectedItem as StructureRepository.InfoLibreTable)?.Table;
         var name = NameInput.Text.Trim();
         var type = TypeCombo.SelectedItem as StructureRepository.InfoLibreType;
 
@@ -57,9 +77,10 @@ public partial class CreateInfoLibreWindow : Window
             textLength = len;
         }
 
+        var tableText = $"{StructureRepository.LabelOf(table)} ({table})";
         var confirmMessage = MirrorTables.TryGetValue(table, out var mirror)
-            ? $"Créer l'information libre \"{name}\" ({type.Label}) sur {table} (et automatiquement sur {mirror}) ?"
-            : $"Créer l'information libre \"{name}\" ({type.Label}) sur {table} ?";
+            ? $"Créer l'information libre \"{name}\" ({type.Label}) sur {tableText} (et automatiquement sur {StructureRepository.LabelOf(mirror)} ({mirror})) ?"
+            : $"Créer l'information libre \"{name}\" ({type.Label}) sur {tableText} ?";
         if (MessageBox.Show(confirmMessage, "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 

@@ -16,11 +16,27 @@ namespace SageToolbox.Repositories;
 /// </summary>
 public sealed class StructureRepository
 {
-    public static readonly string[] TargetTables =
+    /// <summary>Table Sage acceptant des informations libres, avec son libellé affiché à l'utilisateur.</summary>
+    public sealed record InfoLibreTable(string Table, string Label);
+
+    public static readonly InfoLibreTable[] TargetTables =
     {
-        "F_COMPTEG", "F_COMPTEA", "F_COMPTET", "F_ECRITUREC", "F_IMMOBILISATION",
-        "F_RESSOURCEPROD", "F_DOCENTETE", "F_DOCLIGNE", "F_ABOENTETE", "F_ABOLIGNE"
+        new("F_COMPTEG", "Comptes généraux"),
+        new("F_COMPTEA", "Comptes analytiques"),
+        new("F_COMPTET", "Tiers"),
+        new("F_ECRITUREC", "Écritures comptables"),
+        new("F_IMMOBILISATION", "Immobilisations"),
+        new("F_RESSOURCEPROD", "Ressources"),
+        new("F_ARTICLE", "Articles"),
+        new("F_LOTSERIE", "Numéros de série / lot"),
+        new("F_DOCENTETE", "Entêtes de documents"),
+        new("F_DOCLIGNE", "Lignes de documents"),
+        new("F_ABOENTETE", "Entêtes d'abonnements"),
+        new("F_ABOLIGNE", "Lignes d'abonnements"),
     };
+
+    public static string LabelOf(string table) =>
+        TargetTables.FirstOrDefault(t => t.Table == table)?.Label ?? table;
 
     private static readonly Dictionary<string, string> MirrorTables = new()
     {
@@ -28,11 +44,17 @@ public sealed class StructureRepository
         ["F_DOCLIGNE"] = "F_ABOLIGNE",
     };
 
+    /// <summary>
+    /// Longueur maximale (et par défaut) d'une information libre texte : Sage crée ces
+    /// colonnes en VARCHAR(69) et enregistre CB_Len = 70 dans cbSysLibre (longueur + 1).
+    /// </summary>
+    public const int MaxTextLength = 69;
+
     public sealed record InfoLibreType(string Label, int CbType, int CbLen, string SqlType, bool AllowsCustomLength);
 
     public static readonly InfoLibreType[] Types =
     {
-        new("Texte", 9, 70, "VARCHAR", true),
+        new("Texte", 9, MaxTextLength + 1, $"VARCHAR({MaxTextLength})", true),
         new("Date", 3, 2, "smalldatetime", false),
         new("Date Longue", 14, 4, "datetime", false),
         new("Montant", 20, 8, "numeric(24,6)", false),
@@ -44,7 +66,7 @@ public sealed class StructureRepository
 
     public async Task CreateInfoLibreAsync(string table, string name, InfoLibreType type, int? textLength)
     {
-        if (!TargetTables.Contains(table))
+        if (!TargetTables.Any(t => t.Table == table))
             throw new InvalidOperationException("Table cible invalide.");
         if (!NameRegex.IsMatch(name))
             throw new InvalidOperationException(
@@ -56,8 +78,8 @@ public sealed class StructureRepository
 
         if (type.AllowsCustomLength && textLength is { } len)
         {
-            if (len is < 1 or > 255)
-                throw new InvalidOperationException("La longueur doit être comprise entre 1 et 255.");
+            if (len is < 1 or > MaxTextLength)
+                throw new InvalidOperationException($"La longueur doit être comprise entre 1 et {MaxTextLength}.");
             cbLen = len + 1;
             sqlType = $"VARCHAR({len})";
         }

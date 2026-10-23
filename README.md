@@ -25,7 +25,7 @@ Réécriture en **C# / WPF (.NET 8)** de l'outil historique `AIG_Toolbox.py` (Py
 ### Opérations (base)
 - Déclôture d'exercice comptable, avec sauvegarde préalable optionnelle et blocage si un exercice plus récent est encore clôturé
 - Dévalidation d'une facture (avec désambiguïsation si plusieurs documents partagent le même numéro de pièce)
-- Création d'une Information Libre (avec miroir automatique F_DOCENTETE→F_ABOENTETE et F_DOCLIGNE→F_ABOLIGNE)
+- Création d'une Information Libre sur les tables Sage qui l'acceptent (comptes, tiers, écritures, immobilisations, ressources, articles, numéros de série/lot, documents, abonnements), texte limité à 69 caractères comme dans Sage (avec miroir automatique F_DOCENTETE→F_ABOENTETE et F_DOCLIGNE→F_ABOLIGNE)
 - Correction des adresses de livraison manquantes
 - Correction des accents mal encodés
 
