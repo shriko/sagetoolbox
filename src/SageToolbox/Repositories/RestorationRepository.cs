@@ -11,9 +11,12 @@ namespace SageToolbox.Repositories;
 ///   - les fichiers physiques (.mdf/.ldf/FILESTREAM) sont redirigés vers les répertoires
 ///     par défaut de l'INSTANCE (SERVERPROPERTY('InstanceDefaultDataPath'/'InstanceDefaultLogPath')),
 ///     plus besoin de les saisir manuellement ;
+///   - fichiers physiques et noms logiques sont renommés d'après le nom de la base
+///     restaurée, et FILESTREAM (si présent) passe en accès complet, répertoire = nom de
+///     la base ;
 ///   - chaque base restaurée est automatiquement optimisée (mêmes requêtes que le bouton
-///     "Optimiser la base" — AUTO_CLOSE, RECOVERY, niveau de compatibilité, FILESTREAM,
-///     noms logiques, réassociation USER_CBASE/APPL_CBASE) ;
+///     "Optimiser la base" — AUTO_CLOSE, RECOVERY, niveau de compatibilité,
+///     réassociation USER_CBASE/APPL_CBASE) ;
 ///   - les fichiers de connexion de chaque base restaurée sont générés automatiquement.
 ///
 /// Différence avec l'original : les colonnes de RESTORE HEADERONLY/FILELISTONLY sont
@@ -130,30 +133,44 @@ public sealed class RestorationRepository
         var (dataPath, logPath) = await GetDefaultFilePathsAsync(conn);
         var files = await GetFileListAsync(conn, bakFilePath);
 
+        // Les fichiers physiques et logiques sont nommés d'après le nom de la base restaurée,
+        // jamais d'après les noms logiques du .bak : une base copiée depuis une autre (ex.
+        // P_200 sauvegardée avec les noms logiques P_620/P_620_log) écraserait sinon les
+        // fichiers de la base d'origine ou garderait des noms trompeurs.
+        //   1er fichier de données -> {base}.mdf, nom logique {base}
+        //   1er journal            -> {base}_log.ldf, nom logique {base}_log
+        //   fichiers suivants      -> suffixe _2, _3... (.ndf / .ldf)
+        //   FILESTREAM             -> dossier {base} (nom logique conservé)
         var moveClauses = new List<string>();
+        var logicalRenames = new List<(string CurrentName, string NewName)>();
         var dataFileIndex = 0;
+        var logFileIndex = 0;
+        var filestreamIndex = 0;
         foreach (var (logicalName, type) in files)
         {
             string targetPath;
+            string? expectedLogicalName = null;
             switch (type)
             {
-                case "D":
-                    var ext = dataFileIndex == 0 ? ".mdf" : ".ndf";
-                    dataFileIndex++;
-                    targetPath = Path.Combine(dataPath, logicalName + ext);
-                    break;
                 case "L":
-                    targetPath = Path.Combine(logPath, logicalName + ".ldf");
+                    logFileIndex++;
+                    expectedLogicalName = logFileIndex == 1 ? databaseName + "_log" : $"{databaseName}_log_{logFileIndex}";
+                    targetPath = Path.Combine(logPath, expectedLogicalName + ".ldf");
                     break;
                 case "S":
                     // FILESTREAM : la "cible" d'un MOVE est un dossier, pas un fichier.
-                    targetPath = Path.Combine(dataPath, databaseName);
+                    filestreamIndex++;
+                    targetPath = Path.Combine(dataPath, filestreamIndex == 1 ? databaseName : $"{databaseName}_{filestreamIndex}");
                     break;
                 default:
-                    targetPath = Path.Combine(dataPath, logicalName + ".ndf");
+                    dataFileIndex++;
+                    expectedLogicalName = dataFileIndex == 1 ? databaseName : $"{databaseName}_{dataFileIndex}";
+                    targetPath = Path.Combine(dataPath, expectedLogicalName + (dataFileIndex == 1 ? ".mdf" : ".ndf"));
                     break;
             }
             moveClauses.Add($"MOVE N'{logicalName.Replace("'", "''")}' TO N'{targetPath.Replace("'", "''")}'");
+            if (expectedLogicalName is not null && !string.Equals(logicalName, expectedLogicalName, StringComparison.OrdinalIgnoreCase))
+                logicalRenames.Add((logicalName, expectedLogicalName));
         }
 
         var restoreSql =
@@ -166,7 +183,52 @@ public sealed class RestorationRepository
             await restoreCmd.ExecuteNonQueryAsync();
         }
 
+        foreach (var (currentName, newName) in logicalRenames)
+        {
+            await ExecAsync(conn,
+                $"ALTER DATABASE {DatabaseManager.QuoteIdentifier(databaseName)} " +
+                $"MODIFY FILE (NAME = N'{currentName.Replace("'", "''")}', NEWNAME = N'{newName.Replace("'", "''")}')");
+            Logger.Instance.Info($"  Nom logique {currentName} renommé en {newName}.");
+        }
+
+        if (filestreamIndex > 0)
+            await EnableFilestreamAsync(conn, databaseName);
+
         return new BakFileResult(fileName, databaseName, exists ? RestoreOutcome.Replaced : RestoreOutcome.Restored, null);
+    }
+
+    /// <summary>
+    /// Active FILESTREAM en accès non transactionnel complet (NON_TRANSACTED_ACCESS = FULL)
+    /// avec DIRECTORY_NAME = nom de la base. Relève au besoin le niveau d'accès FILESTREAM
+    /// de l'instance à 2 ; si FILESTREAM n'est pas activé sur le service Windows (SQL Server
+    /// Configuration Manager), l'erreur est remontée telle quelle.
+    /// </summary>
+    private static async Task EnableFilestreamAsync(SqlConnection conn, string databaseName)
+    {
+        await using (var checkCmd = new SqlCommand(
+            "SELECT CAST(value_in_use AS INT) FROM sys.configurations WHERE name = 'filestream access level'", conn))
+        {
+            if (Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) < 2)
+            {
+                await ExecAsync(conn, "EXEC sp_configure 'filestream access level', 2");
+                await ExecAsync(conn, "RECONFIGURE");
+            }
+        }
+
+        // Timeout borné : la commande exige un accès exclusif à la base et resterait bloquée
+        // indéfiniment si une session s'y connectait entre-temps.
+        await using var cmd = new SqlCommand(
+            $"ALTER DATABASE {DatabaseManager.QuoteIdentifier(databaseName)} " +
+            $"SET FILESTREAM (NON_TRANSACTED_ACCESS = FULL, DIRECTORY_NAME = N'{databaseName.Replace("'", "''")}')",
+            conn) { CommandTimeout = 15 };
+        await cmd.ExecuteNonQueryAsync();
+        Logger.Instance.Info($"  FILESTREAM activé (accès complet, répertoire {databaseName}).");
+    }
+
+    private static async Task ExecAsync(SqlConnection conn, string sql)
+    {
+        await using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 0 };
+        await cmd.ExecuteNonQueryAsync();
     }
 
     /// <summary>Répertoires par défaut de l'instance pour les fichiers de données/journal.</summary>

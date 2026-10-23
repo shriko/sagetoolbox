@@ -11,3 +11,6 @@ publish/
 ## OS
 Thumbs.db
 .DS_Store
+
+## Sauvegardes SQL de test
+BASES_SQL/

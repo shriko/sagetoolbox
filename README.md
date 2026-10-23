@@ -16,7 +16,7 @@ Réécriture en **C# / WPF (.NET 8)** de l'outil historique `AIG_Toolbox.py` (Py
 - Panneau d'information sur l'**instance SQL** (version, édition/architecture, mode d'authentification, état FILESTREAM, répertoires par défaut data/log/backup)
 
 ### Maintenance (base)
-- **Optimiser la base** : `AUTO_CLOSE OFF`, `RECOVERY SIMPLE`, niveau de compatibilité aligné sur la version réelle de SQL Server, activation FILESTREAM (accès complet, répertoire = nom de la base), correction des noms logiques de fichiers (alignés sur le nom de la base), réassociation `USER_CBASE` → `APPL_CBASE`. Bloque l'opération si des utilisateurs sont connectés à la base.
+- **Optimiser la base** : `AUTO_CLOSE OFF`, `RECOVERY SIMPLE`, niveau de compatibilité aligné sur la version réelle de SQL Server, réassociation `USER_CBASE` → `APPL_CBASE`. Affiche un avertissement (sans bloquer) si des utilisateurs sont connectés à la base.
 - Génération des fichiers de connexion (`.prh` / `.mae` / `.gcm` / `.mdp` / `.imo`)
 - Liste des triggers non standards
 - Contrôle d'intégrité comptable (comptes/journaux manquants, équilibre par journal et par mois, écritures analytiques orphelines ou invalides, comptes attendant une ventilation analytique) — génère un rapport `.txt` à côté de l'exécutable en cas d'anomalie
@@ -37,7 +37,7 @@ Réécriture en **C# / WPF (.NET 8)** de l'outil historique `AIG_Toolbox.py` (Py
 - Optimisation de toutes les bases Sage de l'instance
 - Génération des fichiers de connexion pour toutes les bases
 - Copie des utilisateurs/droits entre deux bases
-- **Restauration SQL en lot** : restaure tous les fichiers `.bak` d'un dossier, fichiers `.mdf`/`.ldf`/FILESTREAM redirigés automatiquement vers les répertoires par défaut de l'instance ; chaque base restaurée est ensuite optimisée et ses fichiers de connexion générés automatiquement
+- **Restauration SQL en lot** : restaure tous les fichiers `.bak` d'un dossier, fichiers `.mdf`/`.ldf`/FILESTREAM redirigés automatiquement vers les répertoires par défaut de l'instance et nommés d'après la base restaurée (`{base}.mdf`, `{base}_log.ldf`, noms logiques `{base}`/`{base}_log`), FILESTREAM éventuel activé en accès complet (répertoire = nom de la base) ; chaque base restaurée est ensuite optimisée et ses fichiers de connexion générés automatiquement
 - **Sauvegarde de toutes les bases** (hors bases système), avec option de compression
 
 ### Transverse
