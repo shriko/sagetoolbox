@@ -71,7 +71,7 @@ Chaque fonctionnalité métier vit dans son `Repository` (`ServerRepository`, `A
 ## Prérequis
 
 - Windows avec accès à une instance SQL Server hébergeant des bases Sage 100
-- Pour compiler : [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Pour compiler : [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 ## Démarrage rapide (développement)
 
