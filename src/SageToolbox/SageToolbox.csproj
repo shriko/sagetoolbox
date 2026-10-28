@@ -9,6 +9,7 @@
     <AssemblyName>SageToolbox</AssemblyName>
     <RootNamespace>SageToolbox</RootNamespace>
     <ApplicationIcon>Assets\SageToolbox.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
     <Product>Sage Toolbox</Product>
     <AssemblyTitle>Sage Toolbox</AssemblyTitle>
 

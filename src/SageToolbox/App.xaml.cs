@@ -10,7 +10,7 @@ namespace SageToolbox;
 /// </summary>
 public partial class App : Application
 {
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -18,6 +18,12 @@ public partial class App : Application
 
         var savedTheme = ThemeManager.ParseSaved(ConfigManager.Instance.Config.Theme);
         ThemeManager.Apply(savedTheme);
+
+        if (await UpdateManager.CheckAndPromptAsync())
+        {
+            Shutdown();
+            return;
+        }
 
         var authWindow = new AuthWindow();
         var authenticated = authWindow.ShowDialog() == true;
