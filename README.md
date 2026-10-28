@@ -2,7 +2,7 @@
 
 Application desktop Windows interne pour l'administration de bases **Sage 100** (Comptabilité, Gestion Commerciale, Trésorerie, Immobilisations) hébergées sur **SQL Server**. Connexion en authentification Windows intégrée, lecture/écriture directe dans les tables Sage (pas d'API Sage officielle).
 
-Réécriture en **C# / WPF (.NET 8)** de l'outil historique `AIG_Toolbox.py` (Python / Tkinter, conservé à la racine du dépôt à titre de référence).
+Application **C# / WPF (.NET 10)**. Le guide d'utilisation est dans [docs/GUIDE_UTILISATEUR.md](docs/GUIDE_UTILISATEUR.md). L'application vérifie au démarrage la présence d'une nouvelle release GitHub et propose de l'installer.
 
 ---
 
@@ -96,9 +96,3 @@ L'exécutable est généré dans `src/SageToolbox/bin/Release/net8.0-windows/win
 
 - Certaines valeurs (colonnes de correction d'accents, format des fichiers de connexion) ont été portées depuis le code source Python d'origine et vérifiées sur des bases réelles ; se référer aux commentaires en tête de chaque `Repository` pour le détail des hypothèses et vérifications effectuées.
 - Le contrôle d'intégrité comptable plafonne chaque sous-contrôle à 200 lignes remontées (anti-inondation de l'UI) ; le rapport texte généré reflète ce même plafond.
-
-## Historique
-
-- `AIG_Toolbox.py` : version Python/Tkinter d'origine (conservée pour référence)
-- `SYNTHESE_V2.md` : synthèse fonctionnelle ayant servi de base à la réécriture
-- `RestaurationSQL.md` : synthèse fonctionnelle (par décompilation d'un outil tiers, sources perdues) ayant servi de base à la fonctionnalité de restauration SQL en lot
