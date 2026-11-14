@@ -1,0 +1,130 @@
+<views:ToolPanel x:Class="SageToolbox.Views.EnrichissementPanel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:SageToolbox.Views"
+        Title="Enrichissement tiers — SIRET / SIREN"
+        MaxWidth="10000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <views:ToolPanel.Resources>
+        <SolidColorBrush x:Key="OkRowBrush" Color="#334CAF50" />
+        <SolidColorBrush x:Key="WarnRowBrush" Color="#33FF9800" />
+        <SolidColorBrush x:Key="KoRowBrush" Color="#33F44336" />
+        <SolidColorBrush x:Key="IgnoredRowBrush" Color="#33808080" />
+
+        <Style x:Key="EnrichissementRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Group}" Value="ok">
+                    <Setter Property="Background" Value="{StaticResource OkRowBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Group}" Value="warn">
+                    <Setter Property="Background" Value="{StaticResource WarnRowBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Group}" Value="ko">
+                    <Setter Property="Background" Value="{StaticResource KoRowBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Group}" Value="ignored">
+                    <Setter Property="Background" Value="{StaticResource IgnoredRowBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCorrected}" Value="True">
+                    <Setter Property="FontWeight" Value="Bold" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </views:ToolPanel.Resources>
+
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Filtres et lancement -->
+        <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,10" Padding="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                    <RadioButton x:Name="ClientsRadio" Content="Clients" GroupName="TierType" IsChecked="True" Margin="0,0,14,0" VerticalAlignment="Center" />
+                    <RadioButton x:Name="FournisseursRadio" Content="Fournisseurs" GroupName="TierType" Margin="0,0,14,0" VerticalAlignment="Center" />
+                    <RadioButton x:Name="TousRadio" Content="Tous" GroupName="TierType" Margin="0,0,20,0" VerticalAlignment="Center" />
+                    <CheckBox x:Name="ValidateExistingCheck" Content="Valider SIRET existants" Margin="0,0,20,0" VerticalAlignment="Center"
+                              ToolTip="Coché : revalide les tiers qui ont déjà un SIRET de 14 chiffres. Décoché : recherche le SIRET des tiers qui n'en ont pas de valide." />
+                    <TextBlock Text="Filtre statut :" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox x:Name="StatusFilterCombo" Width="150" SelectionChanged="StatusFilter_Changed" VerticalAlignment="Center" />
+                </WrapPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="StopButton" Content="Stop" Style="{StaticResource DangerButton}" Margin="12,0,6,0" Padding="16,8"
+                            HorizontalContentAlignment="Center" IsEnabled="False" Click="Stop_Click" />
+                    <Button x:Name="LaunchButton" Content="Lancer la recherche" Style="{StaticResource ActionButton}" Margin="0" Padding="16,8"
+                            HorizontalContentAlignment="Center" Click="Launch_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Résultats -->
+        <DataGrid x:Name="ResultsGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  SelectionMode="Extended" SelectionUnit="FullRow" IsReadOnly="True" GridLinesVisibility="None"
+                  HeadersVisibility="Column" RowHeaderWidth="0" Background="Transparent"
+                  BorderBrush="{DynamicResource CardBorderBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
+                  ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}"
+                  RowStyle="{StaticResource EnrichissementRowStyle}"
+                  MouseDoubleClick="ResultsGrid_MouseDoubleClick" PreviewKeyDown="ResultsGrid_PreviewKeyDown"
+                  Sorting="ResultsGrid_Sorting">
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Cocher / Décocher" Click="ToggleConfirmed_Click" />
+                    <MenuItem Header="Ignorer ce résultat" Click="Ignore_Click" />
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Confirmé" SortMemberPath="Confirmed" Width="80">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding Confirmed, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEnabled="{Binding IsCheckable}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="N° Compte" Binding="{Binding CtNum}" Width="90" />
+                <DataGridTextColumn Header="Intitulé" Binding="{Binding Intitule}" Width="170" />
+                <DataGridTextColumn Header="Adresse" Binding="{Binding Adresse}" Width="150" />
+                <DataGridTextColumn Header="Complément" Binding="{Binding Complement}" Width="100" />
+                <DataGridTextColumn Header="CP" Binding="{Binding CodePostal}" Width="60" />
+                <DataGridTextColumn Header="Ville" Binding="{Binding Ville}" Width="110" />
+                <DataGridTextColumn Header="SIRET Sage" Binding="{Binding SiretSage}" Width="120" />
+                <DataGridTextColumn Header="Statut" Binding="{Binding StatutText}" Width="120" />
+                <DataGridTextColumn Header="SIRET API" Binding="{Binding SiretApi}" Width="120" />
+                <DataGridTextColumn Header="Nom API" Binding="{Binding NomApi}" Width="170" />
+                <DataGridTextColumn Header="Adresse API" Binding="{Binding AdresseApi}" Width="190" />
+                <DataGridTextColumn Header="TVA API" Binding="{Binding TvaApi}" Width="120" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Progression, synthèse et actions -->
+        <StackPanel Grid.Row="2" Margin="0,10,0,0">
+            <ProgressBar x:Name="Progress" Height="10" Minimum="0" Maximum="1" />
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock x:Name="ProgressText" Margin="0,0,20,0" />
+                <TextBlock x:Name="SummaryText" FontStyle="Italic" Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" FontStyle="Italic" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Text="Seuls les éléments cochés (Confirmé) seront exportés ou mis à jour. Double-clic sur une ligne pour choisir une autre entreprise ; espace pour cocher." />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="ExportButton" Content="Export Excel" Style="{StaticResource SecondaryButton}" Margin="12,0,6,0" Padding="14,8"
+                            HorizontalContentAlignment="Center" IsEnabled="False" Click="Export_Click" />
+                    <Button x:Name="UpdateButton" Content="Mettre à jour Sage 100" Style="{StaticResource DangerButton}" Margin="0" Padding="14,8"
+                            HorizontalContentAlignment="Center" IsEnabled="False" Click="Update_Click" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</views:ToolPanel>

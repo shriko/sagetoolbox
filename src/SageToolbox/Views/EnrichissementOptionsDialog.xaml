@@ -1,0 +1,44 @@
+<Window x:Class="SageToolbox.Views.EnrichissementOptionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Options de mise à jour Sage 100" Height="380" Width="460"
+        Icon="/Assets/SageToolbox.ico" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <CheckBox Content="SIRET" IsChecked="True" IsEnabled="False" Margin="0,0,0,10"
+                          ToolTip="Toujours mis à jour : donnée pivot du rapprochement." />
+
+                <CheckBox x:Name="NomCheckBox" Content="Nom" Margin="0,0,0,10"
+                          ToolTip="Remplace l'intitulé Sage par le nom complet renvoyé par l'API (tronqué à 69 caractères)." />
+
+                <CheckBox x:Name="AdresseCheckBox" Content="Adresse / Complément / CP / Ville" Margin="0,0,0,4"
+                          Checked="Adresse_CheckedChanged" Unchecked="Adresse_CheckedChanged"
+                          ToolTip="Reconstruit l'adresse depuis l'établissement retenu et la répartit sur CT_Adresse / CT_Complement / CT_CodePostal / CT_Ville." />
+                <CheckBox x:Name="MajusculesCheckBox" Content="Adresse en majuscules ?" Margin="24,0,0,10" IsEnabled="False"
+                          ToolTip="Sinon, l'adresse est mise en casse « Title Case »." />
+
+                <CheckBox x:Name="TvaCheckBox" Content="N° TVA" Margin="0,0,0,10"
+                          ToolTip="Récupéré depuis l'API, sinon calculé mathématiquement depuis le SIREN." />
+
+                <CheckBox x:Name="SommeilCheckBox" Content="Mettre en sommeil si Radié" Margin="0,0,0,10"
+                          ToolTip="Si le statut du tiers est Radié, force CT_Sommeil = 1." />
+
+                <TextBlock TextWrapping="Wrap" FontStyle="Italic" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0"
+                           Text="Les valeurs avant / après de chaque fiche modifiée sont consignées dans un journal d'audit." />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="Annuler" Style="{StaticResource SecondaryButton}" Width="100" Margin="0,0,10,0"
+                        HorizontalContentAlignment="Center" Click="Cancel_Click" />
+                <Button Content="Valider" Style="{StaticResource ActionButton}" Width="100" Margin="0"
+                        HorizontalContentAlignment="Center" Click="Validate_Click" IsDefault="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

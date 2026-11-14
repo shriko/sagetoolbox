@@ -10,6 +10,8 @@
     <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
     <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="DangerBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#16A34A" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#D97706" />
     <SolidColorBrush x:Key="LogBackgroundBrush" Color="#FAFAFA" />
     <SolidColorBrush x:Key="LogTextBrush" Color="#27272A" />
     <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF" />

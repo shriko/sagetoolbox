@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Height = Math.Min(Height, SystemParameters.WorkArea.Height);
         WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
 
         LogItemsControl.ItemsSource = _logEntries;
@@ -40,13 +41,13 @@ public partial class MainWindow : Window
 
         _databaseButtons.AddRange(new[]
         {
-            BtnOptimizeDb, BtnGenConnFiles, BtnListTriggers, BtnIntegrityCompta, BtnIntegrityCial,
-            BtnDecloture, BtnDevaliderFacture, BtnCreerInfoLibre, BtnCorrigerAdresses, BtnCorrigerAccents,
+            BtnListTriggers, BtnListingRfe, BtnIntegrityCompta, BtnIntegrityCial,
+            BtnDecloture, BtnDevaliderFacture, BtnCreerInfoLibre, BtnEnrichissement, BtnCorrigerAdresses, BtnCorrigerAccents,
             BtnResetAdminPwd, BtnPurgeGhosts
         });
         _instanceButtons.AddRange(new[]
         {
-            BtnOptimizeAll, BtnGenAllConnFiles, BtnCopyUsers, BtnRestoreSql, BtnBackupAll
+            BtnOptimize, BtnGenConnFiles, BtnCopyUsers, BtnRestoreSql, BtnBackupAll, BtnAuditTva
         });
         RefreshButtonStates();
 
@@ -326,9 +327,33 @@ public partial class MainWindow : Window
         }
     }
 
-    // ----- Maintenance (Base) -----
+    // ----- Maintenance technique -----
 
-    private async void BtnOptimizeDb_Click(object sender, RoutedEventArgs e)
+    /// <summary>Ouvre le choix de portée (base connectée ou toutes les bases) d'un outil, puis lance
+    /// l'action correspondante après fermeture du panneau.</summary>
+    private void OpenScopePanel(string title, string description, string actionLabel,
+        Func<Task> forDatabase, Func<Task> forAllDatabases)
+    {
+        var panel = new ScopePanel(title, description, actionLabel);
+        panel.ScopeChosen += async (_, all) =>
+        {
+            ClosePanel();
+            await (all ? forAllDatabases() : forDatabase());
+        };
+        OpenPanel(panel);
+    }
+
+    private void BtnOptimize_Click(object sender, RoutedEventArgs e) =>
+        OpenScopePanel("Optimiser",
+            "Applique le réglage standard : fermeture automatique désactivée, mode de récupération « Simple », niveau de compatibilité aligné sur la version du serveur.",
+            "Optimiser", OptimizeDatabaseAsync, OptimizeAllAsync);
+
+    private void BtnGenConnFiles_Click(object sender, RoutedEventArgs e) =>
+        OpenScopePanel("Fichiers de connexion",
+            "Génère les fichiers de connexion Sage (.mae, .gcm, .mdp, .imo, .prh selon les modules installés) dans un dossier à choisir.",
+            "Générer", GenerateConnectionFilesAsync, GenerateAllConnectionFilesAsync);
+
+    private async Task OptimizeDatabaseAsync()
     {
         var instance = DatabaseManager.Instance.CurrentInstance!;
         var database = DatabaseManager.Instance.CurrentDatabase!;
@@ -344,7 +369,7 @@ public partial class MainWindow : Window
         });
     }
 
-    private async void BtnGenConnFiles_Click(object sender, RoutedEventArgs e)
+    private async Task GenerateConnectionFilesAsync()
     {
         var dialog = new OpenFolderDialog { Title = "Dossier de destination" };
         if (dialog.ShowDialog() != true) return;
@@ -513,7 +538,7 @@ public partial class MainWindow : Window
 
     // ----- Serveur & Instance -----
 
-    private async void BtnOptimizeAll_Click(object sender, RoutedEventArgs e)
+    private async Task OptimizeAllAsync()
     {
         var instance = DatabaseManager.Instance.CurrentInstance!;
         await RunActionAsync("Optimiser TOUTES les bases", async () =>
@@ -533,7 +558,7 @@ public partial class MainWindow : Window
         });
     }
 
-    private async void BtnGenAllConnFiles_Click(object sender, RoutedEventArgs e)
+    private async Task GenerateAllConnectionFilesAsync()
     {
         var dialog = new OpenFolderDialog { Title = "Dossier de destination" };
         if (dialog.ShowDialog() != true) return;
@@ -564,4 +589,14 @@ public partial class MainWindow : Window
     {
         OpenPanel(new BackupAllWindow());
     }
+
+    // ----- Audit -----
+
+    private void BtnAuditTva_Click(object sender, RoutedEventArgs e) => OpenPanel(new AuditTvaPanel());
+
+    private void BtnConformity_Click(object sender, RoutedEventArgs e) => OpenPanel(new ConformityPanel());
+
+    private void BtnListingRfe_Click(object sender, RoutedEventArgs e) => OpenPanel(new ListingRfePanel());
+
+    private void BtnEnrichissement_Click(object sender, RoutedEventArgs e) => OpenPanel(new EnrichissementPanel());
 }

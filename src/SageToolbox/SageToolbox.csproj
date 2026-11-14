@@ -21,11 +21,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="PdfPig" Version="0.1.14" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
+    <PackageReference Include="SaxonCS-HE" Version="13.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Assets\SageToolbox.ico" />
+  </ItemGroup>
+
+  <!-- Règles France_RFE (FNFE) 1.4.0.04 embarquées pour le contrôle de conformité des factures électroniques -->
+  <ItemGroup>
+    <EmbeddedResource Include="Schematron\fnfe_rules.zip" LogicalName="fnfe_rules.zip" />
   </ItemGroup>
 
 </Project>

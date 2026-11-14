@@ -13,6 +13,7 @@ public sealed class AppConfig
     public bool LastRestoreReplaceExisting { get; set; }
     public string? LastBackupFolder { get; set; }
     public bool LastBackupUseCompression { get; set; } = true;
+    public string? LastTvaOutputFolder { get; set; }
 }
 
 /// <summary>
