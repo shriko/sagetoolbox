@@ -6,7 +6,7 @@ using SageToolbox.Repositories;
 
 namespace SageToolbox.Views;
 
-public partial class CreateInfoLibreWindow : Window
+public partial class CreateInfoLibreWindow : ToolPanel
 {
     private static readonly Dictionary<string, string> MirrorTables = new()
     {
@@ -19,7 +19,6 @@ public partial class CreateInfoLibreWindow : Window
     public CreateInfoLibreWindow()
     {
         InitializeComponent();
-        WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
         TableCombo.ItemsSource = StructureRepository.TargetTables;
         TypeCombo.ItemsSource = StructureRepository.Types;
         Loaded += (_, _) => NameInput.Focus();

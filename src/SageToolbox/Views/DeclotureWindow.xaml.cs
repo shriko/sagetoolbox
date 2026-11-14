@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 using SageToolbox.Core;
 using SageToolbox.Models;
@@ -8,7 +9,7 @@ using SageToolbox.Repositories;
 
 namespace SageToolbox.Views;
 
-public partial class DeclotureWindow : Window
+public partial class DeclotureWindow : ToolPanel
 {
     private readonly AccountingRepository _repository = new();
     private readonly List<RadioButton> _radios = new();
@@ -16,7 +17,6 @@ public partial class DeclotureWindow : Window
     public DeclotureWindow()
     {
         InitializeComponent();
-        WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
         Loaded += DeclotureWindow_Loaded;
     }
 
@@ -41,10 +41,12 @@ public partial class DeclotureWindow : Window
                 var radio = new RadioButton
                 {
                     GroupName = "Exercices",
-                    Content = exercice.Libelle,
+                    Content = BuildExerciceContent(exercice),
                     Tag = exercice,
                     IsEnabled = exercice.EstCloture,
-                    Margin = new Thickness(0, 4, 0, 4)
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Padding = new Thickness(6, 3, 6, 3),
+                    Margin = new Thickness(0, 0, 0, 2)
                 };
                 _radios.Add(radio);
                 ExercicesPanel.Children.Add(radio);
@@ -63,6 +65,38 @@ public partial class DeclotureWindow : Window
         }
     }
 
+    /// <summary>Ligne d'exercice : cadenas fermé (clôturé) ou ouvert, numéro, puis période et statut.</summary>
+    private static UIElement BuildExerciceContent(ExerciceInfo exercice)
+    {
+        var icon = new TextBlock
+        {
+            Text = exercice.EstCloture ? "" : "",
+            FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+            FontSize = 20,
+            Width = 28,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        icon.SetResourceReference(TextBlock.ForegroundProperty,
+            exercice.EstCloture ? "AccentBrush" : "TextSecondaryBrush");
+
+        var title = new TextBlock { Text = $"Exercice {exercice.Numero}", FontWeight = FontWeights.SemiBold };
+        var detail = new TextBlock
+        {
+            Text = $"{exercice.DateDebut:dd/MM/yyyy} - {exercice.DateFin:dd/MM/yyyy}  ·  {(exercice.EstCloture ? "Clôturé" : "Ouvert")}",
+            FontSize = 12
+        };
+        detail.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(title);
+        text.Children.Add(detail);
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal };
+        panel.Children.Add(icon);
+        panel.Children.Add(text);
+        return panel;
+    }
+
     private async void Valider_Click(object sender, RoutedEventArgs e)
     {
         var selected = _radios.FirstOrDefault(r => r.IsChecked == true);
@@ -73,10 +107,6 @@ public partial class DeclotureWindow : Window
         }
 
         var exercice = (ExerciceInfo)selected.Tag;
-
-        if (MessageBox.Show($"Rouvrir l'exercice {exercice.Numero} ({exercice.DateDebut:dd/MM/yyyy} - {exercice.DateFin:dd/MM/yyyy}) ?",
-            "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
-            return;
 
         string? backupPath = null;
         if (BackupCheckBox.IsChecked == true)

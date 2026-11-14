@@ -149,6 +149,7 @@ public partial class MainWindow : Window
 
     private async Task ConnectAsync(string instance, string database)
     {
+        ClosePanel();
         Mouse.OverrideCursor = Cursors.Wait;
         try
         {
@@ -224,6 +225,7 @@ public partial class MainWindow : Window
     /// fonctions "Serveur &amp; Instance".</summary>
     private async Task ConnectInstanceOnlyAsync(string instance)
     {
+        ClosePanel();
         Mouse.OverrideCursor = Cursors.Wait;
         try
         {
@@ -257,6 +259,26 @@ public partial class MainWindow : Window
             Mouse.OverrideCursor = null;
         }
     }
+
+    // ----- Panneaux d'outils (zone centrale) -----
+
+    private void OpenPanel(ToolPanel panel)
+    {
+        panel.CloseRequested += (_, _) => ClosePanel();
+        ToolHostTitle.Text = panel.Title;
+        ToolContent.Content = panel;
+        TilesScroll.Visibility = Visibility.Collapsed;
+        ToolHost.Visibility = Visibility.Visible;
+    }
+
+    private void ClosePanel()
+    {
+        ToolHost.Visibility = Visibility.Collapsed;
+        ToolContent.Content = null;
+        TilesScroll.Visibility = Visibility.Visible;
+    }
+
+    private void BackButton_Click(object sender, RoutedEventArgs e) => ClosePanel();
 
     // ----- Thème -----
 
@@ -428,20 +450,17 @@ public partial class MainWindow : Window
 
     private void BtnDecloture_Click(object sender, RoutedEventArgs e)
     {
-        var window = new DeclotureWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new DeclotureWindow());
     }
 
     private void BtnDevaliderFacture_Click(object sender, RoutedEventArgs e)
     {
-        var window = new DevaliderFactureWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new DevaliderFactureWindow());
     }
 
     private void BtnCreerInfoLibre_Click(object sender, RoutedEventArgs e)
     {
-        var window = new CreateInfoLibreWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new CreateInfoLibreWindow());
     }
 
     private async void BtnCorrigerAdresses_Click(object sender, RoutedEventArgs e)
@@ -478,8 +497,7 @@ public partial class MainWindow : Window
 
     private void BtnResetAdminPwd_Click(object sender, RoutedEventArgs e)
     {
-        var window = new ResetAdminPasswordWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new ResetAdminPasswordWindow());
     }
 
     private async void BtnPurgeGhosts_Click(object sender, RoutedEventArgs e)
@@ -534,19 +552,16 @@ public partial class MainWindow : Window
 
     private void BtnCopyUsers_Click(object sender, RoutedEventArgs e)
     {
-        var window = new CopyUsersWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new CopyUsersWindow());
     }
 
     private void BtnRestoreSql_Click(object sender, RoutedEventArgs e)
     {
-        var window = new RestorationWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new RestorationWindow());
     }
 
     private void BtnBackupAll_Click(object sender, RoutedEventArgs e)
     {
-        var window = new BackupAllWindow { Owner = this };
-        window.ShowDialog();
+        OpenPanel(new BackupAllWindow());
     }
 }

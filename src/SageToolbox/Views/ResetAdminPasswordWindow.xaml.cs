@@ -6,7 +6,7 @@ using SageToolbox.Repositories;
 
 namespace SageToolbox.Views;
 
-public partial class ResetAdminPasswordWindow : Window
+public partial class ResetAdminPasswordWindow : ToolPanel
 {
     private readonly AdminRepository _repository = new();
     private readonly List<CheckBox> _optionCheckBoxes = new();
@@ -14,7 +14,6 @@ public partial class ResetAdminPasswordWindow : Window
     public ResetAdminPasswordWindow()
     {
         InitializeComponent();
-        WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
 
         foreach (var option in AdminRepository.SecurityOptions)
         {

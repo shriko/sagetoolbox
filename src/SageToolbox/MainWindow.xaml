@@ -8,7 +8,7 @@
         MinHeight="650" MinWidth="1000">
     <Grid Background="{DynamicResource WindowBackgroundBrush}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" />
+            <ColumnDefinition Width="280" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -18,6 +18,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -25,9 +26,23 @@
                 <TextBlock Grid.Row="0" Text="Sage Toolbox" FontSize="18" FontWeight="Bold"
                            TextWrapping="Wrap" Margin="0,0,0,2" />
                 <TextBlock Grid.Row="1" Text="Administration Sage" FontSize="12"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16" />
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12" />
 
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                <Border Grid.Row="2" Style="{StaticResource CardBorder}" Margin="0,0,0,12" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Connexion" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,2" />
+                        <TextBlock Text="Instance SQL" Style="{StaticResource SectionLabel}" />
+                        <TextBox x:Name="InstanceInput" />
+                        <TextBlock Text="Base de données" Style="{StaticResource SectionLabel}" />
+                        <TextBox x:Name="DatabaseInput" />
+                        <Button x:Name="ConnectButton" Content="Connecter" Style="{StaticResource ActionButton}"
+                                Margin="0,10,0,6" HorizontalContentAlignment="Center" Click="ConnectButton_Click" />
+                        <Button x:Name="OpenMaeButton" Content="Ouvrir fichier local (.mae)" Style="{StaticResource SecondaryButton}"
+                                Margin="0" HorizontalContentAlignment="Center" Click="OpenMaeButton_Click" />
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Background="Transparent">
                     <StackPanel>
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12" Padding="10">
                             <StackPanel>
@@ -65,7 +80,7 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <StackPanel Grid.Row="3">
+                <StackPanel Grid.Row="4">
                     <TextBlock Text="Thème" Style="{StaticResource SectionLabel}" Margin="0,0,0,4" />
                     <ComboBox x:Name="ThemeCombo" SelectionChanged="ThemeCombo_SelectionChanged">
                         <ComboBoxItem Content="Système" />
@@ -79,75 +94,61 @@
         <!-- Zone principale -->
         <Grid Grid.Column="1" Margin="16" Background="{DynamicResource WindowBackgroundBrush}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="190" />
             </Grid.RowDefinitions>
 
-            <!-- Barre de connexion -->
-            <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Instance SQL" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <TextBox x:Name="InstanceInput" Width="180" Margin="0,0,16,0" />
-                    <TextBlock Text="Base de données" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <TextBox x:Name="DatabaseInput" Width="180" Margin="0,0,16,0" />
-                    <Button x:Name="ConnectButton" Content="Connecter" Style="{StaticResource ActionButton}"
-                            Width="110" HorizontalContentAlignment="Center" Click="ConnectButton_Click" />
-                    <Button x:Name="OpenMaeButton" Content="Ouvrir fichier local (.mae)" Style="{StaticResource SecondaryButton}"
-                            Margin="10,0,0,0" HorizontalContentAlignment="Center" Click="OpenMaeButton_Click" />
-                </StackPanel>
-            </Border>
-
-            <!-- Dashboard -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="Transparent">
+            <!-- Outils : tuiles par section -->
+            <ScrollViewer x:Name="TilesScroll" Grid.Row="0" VerticalScrollBarVisibility="Auto" Background="Transparent">
                 <StackPanel Background="Transparent">
-                    <UniformGrid Columns="3" Rows="1">
-                        <Border Style="{StaticResource CardBorder}">
-                            <StackPanel>
-                                <TextBlock Text="🔧 Maintenance (Base)" Style="{StaticResource CardTitle}" />
-                                <Button x:Name="BtnOptimizeDb" Content="Optimiser la base" Style="{StaticResource ActionButton}" Click="BtnOptimizeDb_Click" />
-                                <Button x:Name="BtnGenConnFiles" Content="Générer fichiers de connexion" Style="{StaticResource ActionButton}" Click="BtnGenConnFiles_Click" />
-                                <Button x:Name="BtnListTriggers" Content="Lister triggers spécifiques" Style="{StaticResource ActionButton}" Click="BtnListTriggers_Click" />
-                                <Button x:Name="BtnIntegrityCompta" Content="Contrôle d'intégrité comptable" Style="{StaticResource ActionButton}" Click="BtnIntegrityCompta_Click" />
-                                <Button x:Name="BtnIntegrityCial" Content="Contrôle d'intégrité gestion co." Style="{StaticResource ActionButton}" Click="BtnIntegrityCial_Click" />
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource CardBorder}">
-                            <StackPanel>
-                                <TextBlock Text="💳 Opérations (Base)" Style="{StaticResource CardTitle}" />
-                                <Button x:Name="BtnDecloture" Content="Déclôture d'exercice" Style="{StaticResource ActionButton}" Click="BtnDecloture_Click" />
-                                <Button x:Name="BtnDevaliderFacture" Content="Dévalider une facture" Style="{StaticResource ActionButton}" Click="BtnDevaliderFacture_Click" />
-                                <Button x:Name="BtnCreerInfoLibre" Content="Créer Information Libre" Style="{StaticResource ActionButton}" Click="BtnCreerInfoLibre_Click" />
-                                <Button x:Name="BtnCorrigerAdresses" Content="Corriger adresses livraison" Style="{StaticResource ActionButton}" Click="BtnCorrigerAdresses_Click" />
-                                <Button x:Name="BtnCorrigerAccents" Content="Corriger les accents" Style="{StaticResource ActionButton}" Click="BtnCorrigerAccents_Click" />
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource CardBorder}">
-                            <StackPanel>
-                                <TextBlock Text="🛡️ Administration (Base)" Style="{StaticResource CardTitle}" />
-                                <Button x:Name="BtnResetAdminPwd" Content="Supprimer mot de passe admin" Style="{StaticResource DangerButton}" Click="BtnResetAdminPwd_Click" />
-                                <Button x:Name="BtnPurgeGhosts" Content="Déconnexion users fantômes" Style="{StaticResource ActionButton}" Click="BtnPurgeGhosts_Click" />
-                            </StackPanel>
-                        </Border>
-                    </UniformGrid>
-
-                    <Border Style="{StaticResource CardBorder}">
-                        <StackPanel>
-                            <TextBlock Text="⚙️ Serveur &amp; Instance" Style="{StaticResource CardTitle}" />
-                            <UniformGrid Columns="3">
-                                <Button x:Name="BtnOptimizeAll" Content="Optimiser TOUTES les bases" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnOptimizeAll_Click" />
-                                <Button x:Name="BtnGenAllConnFiles" Content="Générer TOUS les fichiers" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnGenAllConnFiles_Click" />
-                                <Button x:Name="BtnCopyUsers" Content="Copier les utilisateurs" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnCopyUsers_Click" />
-                                <Button x:Name="BtnRestoreSql" Content="Restauration SQL en lot" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnRestoreSql_Click" />
-                                <Button x:Name="BtnBackupAll" Content="Sauvegarder TOUTES les bases" Style="{StaticResource ActionButton}" Height="36" Margin="4,4" Click="BtnBackupAll_Click" />
-                            </UniformGrid>
-                        </StackPanel>
-                    </Border>
+                    <TextBlock Text="MAINTENANCE (BASE)" Style="{StaticResource TileSectionTitle}" />
+                    <WrapPanel Margin="0,0,0,12">
+                        <Button x:Name="BtnOptimizeDb" Tag="&#xE945;" Content="Optimiser la base" Style="{StaticResource TileButton}" Click="BtnOptimizeDb_Click" />
+                        <Button x:Name="BtnGenConnFiles" Tag="&#xE71B;" Content="Fichiers de connexion" Style="{StaticResource TileButton}" Click="BtnGenConnFiles_Click" />
+                        <Button x:Name="BtnListTriggers" Tag="&#xE943;" Content="Triggers spécifiques" Style="{StaticResource TileButton}" Click="BtnListTriggers_Click" />
+                        <Button x:Name="BtnIntegrityCompta" Tag="&#xE930;" Content="Intégrité comptable" Style="{StaticResource TileButton}" Click="BtnIntegrityCompta_Click" />
+                        <Button x:Name="BtnIntegrityCial" Tag="&#xE73A;" Content="Intégrité gestion co." Style="{StaticResource TileButton}" Click="BtnIntegrityCial_Click" />
+                    </WrapPanel>
+                    <TextBlock Text="OPÉRATIONS (BASE)" Style="{StaticResource TileSectionTitle}" />
+                    <WrapPanel Margin="0,0,0,12">
+                        <Button x:Name="BtnDecloture" Tag="&#xE785;" Content="Déclôture d'exercice" Style="{StaticResource TileButton}" Click="BtnDecloture_Click" />
+                        <Button x:Name="BtnDevaliderFacture" Tag="&#xE8A5;" Content="Dévalider une facture" Style="{StaticResource TileButton}" Click="BtnDevaliderFacture_Click" />
+                        <Button x:Name="BtnCreerInfoLibre" Tag="&#xE710;" Content="Créer information libre" Style="{StaticResource TileButton}" Click="BtnCreerInfoLibre_Click" />
+                        <Button x:Name="BtnCorrigerAdresses" Tag="&#xE707;" Content="Corriger adresses livraison" Style="{StaticResource TileButton}" Click="BtnCorrigerAdresses_Click" />
+                        <Button x:Name="BtnCorrigerAccents" Tag="&#xE8D2;" Content="Corriger les accents" Style="{StaticResource TileButton}" Click="BtnCorrigerAccents_Click" />
+                    </WrapPanel>
+                    <TextBlock Text="ADMINISTRATION (BASE)" Style="{StaticResource TileSectionTitle}" />
+                    <WrapPanel Margin="0,0,0,12">
+                        <Button x:Name="BtnResetAdminPwd" Tag="&#xE72E;" Content="Supprimer mot de passe admin" Style="{StaticResource DangerTileButton}" Click="BtnResetAdminPwd_Click" />
+                        <Button x:Name="BtnPurgeGhosts" Tag="&#xE7E8;" Content="Déconnexion users fantômes" Style="{StaticResource TileButton}" Click="BtnPurgeGhosts_Click" />
+                    </WrapPanel>
+                    <TextBlock Text="SERVEUR &amp; INSTANCE" Style="{StaticResource TileSectionTitle}" />
+                    <WrapPanel Margin="0,0,0,12">
+                        <Button x:Name="BtnOptimizeAll" Tag="&#xE945;" Content="Optimiser toutes les bases" Style="{StaticResource TileButton}" Click="BtnOptimizeAll_Click" />
+                        <Button x:Name="BtnGenAllConnFiles" Tag="&#xE8E5;" Content="Générer tous les fichiers" Style="{StaticResource TileButton}" Click="BtnGenAllConnFiles_Click" />
+                        <Button x:Name="BtnCopyUsers" Tag="&#xE716;" Content="Copier les utilisateurs" Style="{StaticResource TileButton}" Click="BtnCopyUsers_Click" />
+                        <Button x:Name="BtnRestoreSql" Tag="&#xE777;" Content="Restauration SQL en lot" Style="{StaticResource TileButton}" Click="BtnRestoreSql_Click" />
+                        <Button x:Name="BtnBackupAll" Tag="&#xE74E;" Content="Sauvegarder toutes les bases" Style="{StaticResource TileButton}" Click="BtnBackupAll_Click" />
+                    </WrapPanel>
                 </StackPanel>
             </ScrollViewer>
 
+            <!-- Outil ouvert : remplace la grille de tuiles -->
+            <Grid x:Name="ToolHost" Grid.Row="0" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="←  Retour" Style="{StaticResource SecondaryButton}" Margin="0,0,14,0"
+                            IsEnabled="{Binding Content.IsEnabled, ElementName=ToolContent}" Click="BackButton_Click" />
+                    <TextBlock x:Name="ToolHostTitle" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+                <ContentControl x:Name="ToolContent" Grid.Row="1" />
+            </Grid>
+
             <!-- Console de log -->
-            <Border Grid.Row="2" Style="{StaticResource CardBorder}" Margin="0,12,0,0" Background="{DynamicResource LogBackgroundBrush}">
+            <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,12,0,0" Background="{DynamicResource LogBackgroundBrush}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

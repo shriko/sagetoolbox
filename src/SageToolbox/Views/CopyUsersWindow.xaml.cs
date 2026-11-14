@@ -5,7 +5,7 @@ using SageToolbox.Repositories;
 
 namespace SageToolbox.Views;
 
-public partial class CopyUsersWindow : Window
+public partial class CopyUsersWindow : ToolPanel
 {
     private readonly ServerRepository _serverRepository = new();
     private readonly UsersRepository _usersRepository = new();
@@ -13,7 +13,6 @@ public partial class CopyUsersWindow : Window
     public CopyUsersWindow()
     {
         InitializeComponent();
-        WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
         Loaded += CopyUsersWindow_Loaded;
     }
 

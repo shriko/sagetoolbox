@@ -1,12 +1,8 @@
-<Window x:Class="SageToolbox.Views.CopyUsersWindow"
+<views:ToolPanel x:Class="SageToolbox.Views.CopyUsersWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Copier les utilisateurs"
-        Icon="/Assets/SageToolbox.ico"
-        Height="380" Width="420"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        Topmost="True">
+        xmlns:views="clr-namespace:SageToolbox.Views"
+        Title="Copier les utilisateurs">
     <Grid Background="{DynamicResource WindowBackgroundBrush}">
         <Grid Margin="16">
             <Grid.RowDefinitions>
@@ -31,4 +27,4 @@
                     Height="34" HorizontalContentAlignment="Center" Click="Copier_Click" />
         </Grid>
     </Grid>
-</Window>
+</views:ToolPanel>

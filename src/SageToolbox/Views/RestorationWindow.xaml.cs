@@ -7,14 +7,13 @@ using SageToolbox.Repositories;
 
 namespace SageToolbox.Views;
 
-public partial class RestorationWindow : Window
+public partial class RestorationWindow : ToolPanel
 {
     private readonly RestorationRepository _repository = new();
 
     public RestorationWindow()
     {
         InitializeComponent();
-        WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
 
         BakFolderInput.Text = ConfigManager.Instance.Config.LastRestoreBakFolder ?? string.Empty;
         ConnFilesFolderInput.Text = ConfigManager.Instance.Config.LastRestoreConnFilesFolder ?? string.Empty;

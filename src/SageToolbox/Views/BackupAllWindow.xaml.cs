@@ -7,14 +7,13 @@ using SageToolbox.Repositories;
 
 namespace SageToolbox.Views;
 
-public partial class BackupAllWindow : Window
+public partial class BackupAllWindow : ToolPanel
 {
     private readonly BackupRepository _repository = new();
 
     public BackupAllWindow()
     {
         InitializeComponent();
-        WindowChromeHelper.ApplyTitleBarTheme(this, ThemeManager.CurrentEffectiveTheme == AppTheme.Dark);
 
         BackupFolderInput.Text = ConfigManager.Instance.Config.LastBackupFolder ?? string.Empty;
         CompressionCheckBox.IsChecked = ConfigManager.Instance.Config.LastBackupUseCompression;

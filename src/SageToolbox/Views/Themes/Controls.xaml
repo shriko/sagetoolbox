@@ -185,4 +185,64 @@
         <Setter Property="Margin" Value="0,10,0,2" />
     </Style>
 
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    </Style>
+
+    <!-- Tuile carrée : icône (police Segoe Fluent Icons, repli Segoe MDL2 Assets) passée via Tag,
+         titre via Content. La couleur de l'icône et de la bordure au survol suit Foreground. -->
+    <Style x:Key="TileButton" TargetType="Button">
+        <Setter Property="Width" Value="58" />
+        <Setter Property="Height" Value="58" />
+        <Setter Property="Margin" Value="0,0,8,8" />
+        <Setter Property="ToolTip" Value="{Binding Content, RelativeSource={RelativeSource Self}}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{DynamicResource CardBackgroundBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="2">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="18" Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,1" />
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="8" TextWrapping="Wrap" LineHeight="9" LineStackingStrategy="BlockLineHeight"
+                                       TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxHeight="18"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.8" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DangerTileButton" TargetType="Button" BasedOn="{StaticResource TileButton}">
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+
+    <Style x:Key="TileSectionTitle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
 </ResourceDictionary>
