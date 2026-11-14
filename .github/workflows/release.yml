@@ -20,8 +20,14 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           dotnet publish src/SageToolbox/SageToolbox.csproj -c Release -p:Version=$VERSION -o publish
+      - name: Notes de version (section du CHANGELOG)
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '/^## \[/{p=index($0, "[" v "]")>0} p' CHANGELOG.md > release_notes.md
+          [ -s release_notes.md ] || echo "Version $VERSION" > release_notes.md
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: publish/SageToolbox.exe
-          generate_release_notes: true
+          body_path: release_notes.md
