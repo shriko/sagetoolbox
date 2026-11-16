@@ -222,8 +222,15 @@
                             Margin="0,4,4,0" Padding="3,0" CornerRadius="3" Background="{DynamicResource AccentBrush}">
                         <TextBlock Text="Instance" FontSize="8" Foreground="{DynamicResource AccentTextBrush}" />
                     </Border>
+                    <Border x:Name="BetaBadge" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="4,4,0,0" Padding="3,0" CornerRadius="3" Background="{DynamicResource WarningBrush}">
+                        <TextBlock Text="Bêta" FontSize="8" FontWeight="SemiBold" Foreground="#18181B" />
+                    </Border>
                   </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="views:Tile.Beta" Value="True">
+                            <Setter TargetName="BetaBadge" Property="Visibility" Value="Visible" />
+                        </Trigger>
                         <Trigger Property="views:Tile.InstanceScope" Value="True">
                             <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
                         </Trigger>

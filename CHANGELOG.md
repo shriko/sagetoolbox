@@ -2,6 +2,12 @@
 
 Les versions sont publiées sur [GitHub](https://github.com/shriko/sagetoolbox/releases). Au démarrage, l'application propose d'installer la dernière version disponible.
 
+## [1.3.0] — 2026-11-16
+
+### Nouveautés
+- **Recodification (bêta)** : changement en masse des codes des comptes généraux, tiers, journaux, comptes analytiques, familles et articles (saisie ou import / export Excel), contrôles des nouveaux codes, fusion dans une fiche existante, traitement SQL transactionnel avec contrôles préalables (utilisateurs connectés, sauvegarde) et rapport HTML. Compatible SPC : tables préfixées du schéma de la société, sessions et sauvegarde confirmées par l'utilisateur.
+- **Connexion SPC (Sage Premium Cloud)** : connexion à un serveur Azure SQL (adresse, base, utilisateur et mot de passe SQL), lecture des sociétés (`cbase.companies`) et sélection de la société de travail. Seul le schéma SQL change d'une société à l'autre (`soc_bijou.F_ECRITUREC` au lieu de `dbo.F_ECRITUREC`). Les outils indisponibles en SPC (sauvegarde, restauration, copie des utilisateurs, optimisation, fichiers de connexion, mot de passe administrateur, utilisateurs fantômes) sont grisés ; la déclôture n'y propose pas de sauvegarde préalable ; l'Audit TVA liste les sociétés du dossier.
+
 ## [1.1.0] — 2026-11-14
 
 ### Nouveautés

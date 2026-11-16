@@ -25,8 +25,8 @@ public sealed class IntegrityRepository
     {
         const string sql = @"
             SELECT DISTINCT TOP (@cap) ec.CG_Num
-            FROM dbo.F_ECRITUREC ec
-            LEFT JOIN dbo.F_COMPTEG cg ON ec.CG_Num = cg.CG_Num
+            FROM {schema}.F_ECRITUREC ec
+            LEFT JOIN {schema}.F_COMPTEG cg ON ec.CG_Num = cg.CG_Num
             WHERE cg.CG_Num IS NULL AND ec.CG_Num IS NOT NULL AND ec.CG_Num <> ''";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Compte général référencé mais absent de F_COMPTEG", r => $"Compte {r["CG_Num"]}");
@@ -36,8 +36,8 @@ public sealed class IntegrityRepository
     {
         const string sql = @"
             SELECT DISTINCT TOP (@cap) ec.CT_Num
-            FROM dbo.F_ECRITUREC ec
-            LEFT JOIN dbo.F_COMPTET ct ON ec.CT_Num = ct.CT_Num
+            FROM {schema}.F_ECRITUREC ec
+            LEFT JOIN {schema}.F_COMPTET ct ON ec.CT_Num = ct.CT_Num
             WHERE ct.CT_Num IS NULL AND ec.CT_Num IS NOT NULL AND ec.CT_Num <> ''";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Compte tiers référencé mais absent de F_COMPTET", r => $"Compte {r["CT_Num"]}");
@@ -47,8 +47,8 @@ public sealed class IntegrityRepository
     {
         const string sql = @"
             SELECT DISTINCT TOP (@cap) ec.JO_Num
-            FROM dbo.F_ECRITUREC ec
-            LEFT JOIN dbo.F_JOURNAUX jo ON ec.JO_Num = jo.JO_Num
+            FROM {schema}.F_ECRITUREC ec
+            LEFT JOIN {schema}.F_JOURNAUX jo ON ec.JO_Num = jo.JO_Num
             WHERE jo.JO_Num IS NULL AND ec.JO_Num IS NOT NULL AND ec.JO_Num <> ''";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Code journal référencé mais absent de F_JOURNAUX", r => $"Journal {r["JO_Num"]}");
@@ -65,7 +65,7 @@ public sealed class IntegrityRepository
         const string sql = @"
             SELECT TOP (@cap) JO_Num, YEAR(JM_Date) AS Annee, MONTH(JM_Date) AS Mois,
                    SUM(CASE WHEN EC_Sens = 0 THEN EC_Montant ELSE -EC_Montant END) AS Ecart
-            FROM dbo.F_ECRITUREC
+            FROM {schema}.F_ECRITUREC
             GROUP BY JO_Num, YEAR(JM_Date), MONTH(JM_Date)
             HAVING ABS(SUM(CASE WHEN EC_Sens = 0 THEN EC_Montant ELSE -EC_Montant END)) > 0.01
             ORDER BY JO_Num, Annee, Mois";
@@ -82,10 +82,10 @@ public sealed class IntegrityRepository
     {
         const string sql = @"
             SELECT TOP (@cap) ec.JO_Num, ec.JM_Date, ec.CG_Num, ec.EC_Piece
-            FROM dbo.F_ECRITUREC ec
-            JOIN dbo.F_COMPTEG cg ON ec.CG_Num = cg.CG_Num
+            FROM {schema}.F_ECRITUREC ec
+            JOIN {schema}.F_COMPTEG cg ON ec.CG_Num = cg.CG_Num
             WHERE cg.CG_Analytique <> 0
-              AND NOT EXISTS (SELECT 1 FROM dbo.F_ECRITUREA ea WHERE ea.EC_No = ec.EC_No)
+              AND NOT EXISTS (SELECT 1 FROM {schema}.F_ECRITUREA ea WHERE ea.EC_No = ec.EC_No)
             ORDER BY ec.JO_Num, ec.JM_Date";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Compte général attendant de l'analytique mais sans ventilation",
@@ -96,8 +96,8 @@ public sealed class IntegrityRepository
     {
         const string sql = @"
             SELECT TOP (@cap) ea.EC_No
-            FROM dbo.F_ECRITUREA ea
-            LEFT JOIN dbo.F_ECRITUREC ec ON ea.EC_No = ec.EC_No
+            FROM {schema}.F_ECRITUREA ea
+            LEFT JOIN {schema}.F_ECRITUREC ec ON ea.EC_No = ec.EC_No
             WHERE ec.EC_No IS NULL";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Écriture analytique orpheline (F_ECRITUREA sans écriture comptable)",
@@ -108,8 +108,8 @@ public sealed class IntegrityRepository
     {
         const string sql = @"
             SELECT TOP (@cap) ea.EC_No, ea.N_Analytique, ea.CA_Num
-            FROM dbo.F_ECRITUREA ea
-            LEFT JOIN dbo.F_COMPTEA ca ON ea.N_Analytique = ca.N_Analytique AND ea.CA_Num = ca.CA_Num
+            FROM {schema}.F_ECRITUREA ea
+            LEFT JOIN {schema}.F_COMPTEA ca ON ea.N_Analytique = ca.N_Analytique AND ea.CA_Num = ca.CA_Num
             WHERE ca.CA_Num IS NULL AND ea.CA_Num IS NOT NULL AND ea.CA_Num <> ''";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Écriture analytique pointant vers un compte analytique inexistant",

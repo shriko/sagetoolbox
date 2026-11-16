@@ -18,6 +18,14 @@ public partial class DeclotureWindow : ToolPanel
     {
         InitializeComponent();
         Loaded += DeclotureWindow_Loaded;
+
+        // Pas de sauvegarde SQL possible sur le serveur Azure partagé d'un dossier SPC.
+        if (DatabaseManager.Instance.IsSpc)
+        {
+            BackupCheckBox.IsChecked = false;
+            BackupCheckBox.IsEnabled = false;
+            BackupCheckBox.Content = "Sauvegarder la base avant l'opération (indisponible en SPC)";
+        }
     }
 
     private async void DeclotureWindow_Loaded(object sender, RoutedEventArgs e)

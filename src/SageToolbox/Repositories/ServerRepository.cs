@@ -85,8 +85,9 @@ public sealed class ServerRepository
     private static async Task<bool> ObjectExistsAsync(SqlConnection conn, string database, string tableName, SqlTransaction? tx = null)
     {
         await using var cmd = new SqlCommand(
-            "SELECT OBJECT_ID(QUOTENAME(@db) + '.dbo.' + @t)", conn, tx);
+            "SELECT OBJECT_ID(QUOTENAME(@db) + '.' + QUOTENAME(@schema) + '.' + @t)", conn, tx);
         cmd.Parameters.AddWithValue("@db", database);
+        cmd.Parameters.AddWithValue("@schema", DatabaseManager.Instance.SchemaName);
         cmd.Parameters.AddWithValue("@t", tableName);
         var result = await cmd.ExecuteScalarAsync();
         return result is not null && result is not DBNull;
@@ -137,6 +138,23 @@ public sealed class ServerRepository
         };
     }
 
+    /// <summary>Informations d'une société SPC : modules Sage installés (cbsystable du schéma de la société).</summary>
+    public async Task<SageDatabaseInfo> GetSpcCompanyInfoAsync(SpcCompany company)
+    {
+        await using var conn = DatabaseManager.Instance.CreateConnection();
+        await conn.OpenAsync();
+        var modules = await GetInstalledModulesAsync(conn);
+
+        return new SageDatabaseInfo
+        {
+            DatabaseName = company.Name,
+            HasComptabilite = modules.Contains("CPTA"),
+            HasGestionCommerciale = modules.Contains("CIAL"),
+            HasTresorerie = modules.Contains("TRES"),
+            HasImmobilisations = modules.Contains("IMMO")
+        };
+    }
+
     /// <summary>
     /// Modules Sage installés (CPTA/CIAL/TRES/IMMO), lus depuis cbsystable.CB_TYPE
     /// (portage fidèle de reset_admin_password/generate_connexion_files, V1). Retourne
@@ -148,7 +166,7 @@ public sealed class ServerRepository
         if (!await ObjectExistsAsync(conn, conn.Database, "cbsystable", tx))
             return modules;
 
-        await using var cmd = new SqlCommand("SELECT DISTINCT CB_TYPE FROM dbo.cbsystable", conn, tx);
+        await using var cmd = new SqlCommand(DatabaseManager.Instance.ResolveSchema("SELECT DISTINCT CB_TYPE FROM {schema}.cbsystable"), conn, tx);
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -258,7 +276,8 @@ public sealed class ServerRepository
         const string sql = @"
             SELECT OBJECT_NAME(tr.parent_id) AS TableName, tr.name AS TriggerName
             FROM sys.triggers tr
-            WHERE tr.name NOT LIKE 'TG_CBDEL[_]%'
+            WHERE (@schema IS NULL OR OBJECT_SCHEMA_NAME(tr.parent_id) = @schema)
+              AND tr.name NOT LIKE 'TG_CBDEL[_]%'
               AND tr.name NOT LIKE 'TG_CBINS[_]%'
               AND tr.name NOT LIKE 'TG_CBUPD%'
               AND tr.name NOT LIKE 'TG_INS[_]%'
@@ -266,7 +285,11 @@ public sealed class ServerRepository
               AND tr.name NOT LIKE 'TG_DEL[_]%'
             ORDER BY tr.name";
 
-        var table = await DatabaseManager.Instance.ExecuteQueryAsync(sql);
+        // En SPC toutes les sociétés partagent la base : seuls les triggers des tables de la société courante sont listés.
+        var table = await DatabaseManager.Instance.ExecuteQueryAsync(sql, new Dictionary<string, object?>
+        {
+            ["@schema"] = DatabaseManager.Instance.IsSpc ? DatabaseManager.Instance.SchemaName : null
+        });
         return table.Rows.Cast<DataRow>()
             .Select(r => new TriggerInfo
             {
@@ -305,7 +328,7 @@ public sealed class ServerRepository
         {
             if (!await TableColumnExistsAsync(table, column)) continue;
 
-            var sql = $"SELECT COUNT(*) FROM {QuoteName(table)} WHERE {QuoteName(column)} LIKE '%Ã%' OR {QuoteName(column)} LIKE '%â€%'";
+            var sql = $"SELECT COUNT(*) FROM {{schema}}.{QuoteName(table)} WHERE {QuoteName(column)} LIKE '%Ã%' OR {QuoteName(column)} LIKE '%â€%'";
             var result = await DatabaseManager.Instance.ExecuteScalarAsync(sql);
             var count = result is int i ? i : Convert.ToInt32(result);
             if (count > 0) counts[$"{table}.{column}"] = count;
@@ -326,7 +349,7 @@ public sealed class ServerRepository
                 foreach (var (bad, good) in MojibakeReplacements)
                     expr = $"REPLACE({expr}, N'{bad.Replace("'", "''")}', N'{good.Replace("'", "''")}')";
 
-                var sql = $"UPDATE {QuoteName(table)} SET {QuoteName(column)} = {expr} " +
+                var sql = $"UPDATE {{schema}}.{QuoteName(table)} SET {QuoteName(column)} = {expr} " +
                            $"WHERE {QuoteName(column)} LIKE '%Ã%' OR {QuoteName(column)} LIKE '%â€%'";
 
                 totalUpdated += await DatabaseManager.ExecuteInTransactionAsync(conn, tx, sql);
@@ -340,11 +363,12 @@ public sealed class ServerRepository
         const string sql = @"
             SELECT COUNT(*) FROM sys.columns c
             JOIN sys.tables t ON c.object_id = t.object_id
-            WHERE t.name = @table AND c.name = @column";
+            WHERE t.name = @table AND c.name = @column AND t.schema_id = SCHEMA_ID(@schema)";
         var result = await DatabaseManager.Instance.ExecuteScalarAsync(sql, new Dictionary<string, object?>
         {
             ["@table"] = table,
-            ["@column"] = column
+            ["@column"] = column,
+            ["@schema"] = DatabaseManager.Instance.SchemaName
         });
         return Convert.ToInt32(result) > 0;
     }

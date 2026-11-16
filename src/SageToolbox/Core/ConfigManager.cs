@@ -14,6 +14,14 @@ public sealed class AppConfig
     public string? LastBackupFolder { get; set; }
     public bool LastBackupUseCompression { get; set; } = true;
     public string? LastTvaOutputFolder { get; set; }
+
+    /// <summary>Dernier mode de connexion : « OnPremise » (Sage 100 SQL Server) ou « Spc » (Sage Premium Cloud).</summary>
+    public string ConnectionMode { get; set; } = "OnPremise";
+
+    // Connexion SPC : le mot de passe n'est jamais enregistré.
+    public string? SpcServer { get; set; }
+    public string? SpcDatabase { get; set; }
+    public string? SpcUser { get; set; }
 }
 
 /// <summary>

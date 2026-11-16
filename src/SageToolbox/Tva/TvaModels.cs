@@ -11,11 +11,14 @@ public sealed class BaseInfo : INotifyPropertyChanged
 
     public required string Nom { get; init; }
     public required string Societe { get; init; }
+
+    /// <summary>Schéma SQL de la société en SPC (chaque société est un schéma de la base Azure) ; null pour une base Sage 100 SQL Server.</summary>
+    public string? Schema { get; init; }
     public decimal TailleMo { get; init; }
     public int NbEcrituresN { get; init; }
     public int NbEcrituresN1 { get; init; }
 
-    public string TailleLabel => TailleMo.ToString("N2", Fr);
+    public string TailleLabel => Schema is null ? TailleMo.ToString("N2", Fr) : "—";
     public string NbEcrituresNLabel => NbEcrituresN.ToString("N0", Fr);
     public string NbEcrituresN1Label => NbEcrituresN1.ToString("N0", Fr);
 

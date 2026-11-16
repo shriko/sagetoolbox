@@ -100,11 +100,11 @@ public sealed class StructureRepository
         var nameQuoted = DatabaseManager.QuoteIdentifier(name);
 
         await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-            $"ALTER TABLE dbo.{tableQuoted} ADD {nameQuoted} {sqlType} NULL");
+            $"ALTER TABLE {{schema}}.{tableQuoted} ADD {nameQuoted} {sqlType} NULL");
 
         await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-            @"INSERT INTO dbo.cbSysLibre (CB_File, CB_Name, CB_Pos, CB_Type, CB_Len, CB_Flag)
-              VALUES (@file, @name, (SELECT ISNULL(MAX(CB_Pos), 0) + 1 FROM dbo.cbSysLibre WHERE CB_File = @file), @type, @len, 0)",
+            @"INSERT INTO {schema}.cbSysLibre (CB_File, CB_Name, CB_Pos, CB_Type, CB_Len, CB_Flag)
+              VALUES (@file, @name, (SELECT ISNULL(MAX(CB_Pos), 0) + 1 FROM {schema}.cbSysLibre WHERE CB_File = @file), @type, @len, 0)",
             new Dictionary<string, object?>
             {
                 ["@file"] = table,

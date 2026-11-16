@@ -3,8 +3,8 @@ using SageToolbox.Core;
 
 namespace SageToolbox.Tva;
 
-/// <summary>Lecture seule : liste les bases Sage Comptabilité de l'instance connectée et exécute les contrôles TVA
-/// (authentification Windows intégrée, comme le reste de la Toolbox).</summary>
+/// <summary>Lecture seule : liste les bases Sage Comptabilité de l'instance connectée (ou les sociétés d'un dossier SPC)
+/// et exécute les contrôles TVA.</summary>
 public sealed class TvaSqlService(string instance)
 {
     private static string Quote(string name) => "[" + name.Replace("]", "]]") + "]";
@@ -15,6 +15,8 @@ public sealed class TvaSqlService(string instance)
     /// </summary>
     public async Task<List<BaseInfo>> ListBasesAsync(CancellationToken ct)
     {
+        if (DatabaseManager.Instance.IsSpc) return await ListSpcCompaniesAsync(ct);
+
         await using var master = DatabaseManager.Instance.CreateConnection(instance, "master");
         await master.OpenAsync(ct);
 
@@ -72,6 +74,59 @@ public sealed class TvaSqlService(string instance)
         return bases;
     }
 
+    /// <summary>En SPC, chaque société est un schéma de la base Azure : société, nombre d'écritures N et N-1 (taille non disponible).</summary>
+    private async Task<List<BaseInfo>> ListSpcCompaniesAsync(CancellationToken ct)
+    {
+        await using var conn = DatabaseManager.Instance.CreateConnection();
+        await conn.OpenAsync(ct);
+
+        var annee = DateTime.Now.Year;
+        var bases = new List<BaseInfo>();
+        foreach (var company in DatabaseManager.Instance.SpcCompanies)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var q = DatabaseManager.QuoteIdentifier(company.SchemaName);
+                var sql = $"""
+                    IF OBJECT_ID(N'{q.Replace("'", "''")}.P_DOSSIER') IS NULL
+                       OR OBJECT_ID(N'{q.Replace("'", "''")}.F_ECRITUREC') IS NULL
+                        SELECT CAST(NULL AS nvarchar(100)), 0, 0
+                    ELSE
+                        SELECT (SELECT TOP 1 D_RaisonSoc FROM {q}.P_DOSSIER),
+                               (SELECT COUNT(*) FROM {q}.F_ECRITUREC WHERE JM_Date >= @n  AND JM_Date < @n1),
+                               (SELECT COUNT(*) FROM {q}.F_ECRITUREC WHERE JM_Date >= @n0 AND JM_Date < @n)
+                    """;
+                await using var cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@n0", new DateTime(annee - 1, 1, 1));
+                cmd.Parameters.AddWithValue("@n", new DateTime(annee, 1, 1));
+                cmd.Parameters.AddWithValue("@n1", new DateTime(annee + 1, 1, 1));
+                await using var rd = await cmd.ExecuteReaderAsync(ct);
+                if (!await rd.ReadAsync(ct) || rd.IsDBNull(0)) continue;
+
+                bases.Add(new BaseInfo
+                {
+                    Nom = company.Name,
+                    Schema = company.SchemaName,
+                    Societe = rd.GetString(0),
+                    NbEcrituresN = rd.GetInt32(1),
+                    NbEcrituresN1 = rd.GetInt32(2)
+                });
+            }
+            catch (SqlException)
+            {
+                // Société sans comptabilité ou inaccessible : ignorée.
+            }
+        }
+
+        return bases;
+    }
+
+    /// <summary>Préfixe du schéma les tables Sage (F_… / P_…) des clauses FROM / JOIN des contrôles, qui sont écrits sans schéma.</summary>
+    internal static string QualifyTables(string sql, string schema) =>
+        System.Text.RegularExpressions.Regex.Replace(sql, @"\b(FROM|JOIN)(\s+)((?:F|P)_[A-Za-z0-9_]+)\b",
+            $"$1$2{DatabaseManager.QuoteIdentifier(schema)}.$3");
+
     /// <summary>Exécute tous les contrôles sur une base ; une erreur sur un contrôle n'arrête pas les autres.</summary>
     public async Task<BaseAnalysis> AnalyseAsync(BaseInfo info, IProgress<string> log, CancellationToken ct)
     {
@@ -79,6 +134,7 @@ public sealed class TvaSqlService(string instance)
 
         await using var conn = DatabaseManager.Instance.CreateConnection(instance, info.Nom);
         await conn.OpenAsync(ct);
+        var schema = info.Schema ?? "dbo";
 
         foreach (var def in AuditControls.All)
         {
@@ -86,7 +142,7 @@ public sealed class TvaSqlService(string instance)
             var result = new ControlResult { Definition = def };
             try
             {
-                await using var cmd = new SqlCommand(def.Sql, conn) { CommandTimeout = 120 };
+                await using var cmd = new SqlCommand(QualifyTables(def.Sql, schema), conn) { CommandTimeout = 120 };
                 await using var rd = await cmd.ExecuteReaderAsync(ct);
 
                 var columns = Enumerable.Range(0, rd.FieldCount).Select(rd.GetName).ToArray();

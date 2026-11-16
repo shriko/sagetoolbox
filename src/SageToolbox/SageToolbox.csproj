@@ -9,7 +9,7 @@
     <AssemblyName>SageToolbox</AssemblyName>
     <RootNamespace>SageToolbox</RootNamespace>
     <ApplicationIcon>Assets\SageToolbox.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.3.0</Version>
     <Product>Sage Toolbox</Product>
     <AssemblyTitle>Sage Toolbox</AssemblyTitle>
 
@@ -36,6 +36,11 @@
   <!-- Règles France_RFE (FNFE) 1.4.0.04 embarquées pour le contrôle de conformité des factures électroniques -->
   <ItemGroup>
     <EmbeddedResource Include="Schematron\fnfe_rules.zip" LogicalName="fnfe_rules.zip" />
+  </ItemGroup>
+
+  <!-- Scripts de recodification (modèles d'UPDATE par type d'élément) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Recodification\Sql\*.sql" LogicalName="Recodification.Sql.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

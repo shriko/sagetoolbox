@@ -32,7 +32,7 @@ public sealed class AccountingRepository
             $"D_DebutExo{n:D2}", $"D_FinExo{n:D2}", $"D_Archivage{n:D2}"
         }));
 
-        var table = await DatabaseManager.Instance.ExecuteQueryAsync($"SELECT TOP 1 {columns} FROM dbo.P_DOSSIER");
+        var table = await DatabaseManager.Instance.ExecuteQueryAsync($"SELECT TOP 1 {columns} FROM {{schema}}.P_DOSSIER");
         if (table.Rows.Count == 0) return new List<ExerciceInfo>();
 
         var row = table.Rows[0];
@@ -116,26 +116,26 @@ public sealed class AccountingRepository
             // modification factice (évite de déclencher une validation applicative sur
             // cbmodification) — portage fidèle de run_accounting_script (V1).
             await using var dateCmd = new SqlCommand(
-                "SELECT MAX(cbcreation) FROM dbo.F_ECRITUREC WHERE JM_DATE >= @debut AND JM_DATE <= @fin", conn, tx);
+                DatabaseManager.Instance.ResolveSchema("SELECT MAX(cbcreation) FROM {schema}.F_ECRITUREC WHERE JM_DATE >= @debut AND JM_DATE <= @fin"), conn, tx);
             dateCmd.Parameters.AddWithValue("@debut", cible.DateDebut);
             dateCmd.Parameters.AddWithValue("@fin", cible.DateFin);
             var dateCreationResult = await dateCmd.ExecuteScalarAsync();
             var dateCreation = dateCreationResult is DBNull or null ? new DateTime(1753, 1, 1) : (DateTime)dateCreationResult;
 
             await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                @"UPDATE dbo.F_ECRITUREC SET EC_Cloture = 0, EC_Impression = 0, EC_DateCloture = '1753-01-01', cbmodification = @dateCreation
+                @"UPDATE {schema}.F_ECRITUREC SET EC_Cloture = 0, EC_Impression = 0, EC_DateCloture = '1753-01-01', cbmodification = @dateCreation
                   WHERE JM_DATE >= @debut AND JM_DATE <= @fin",
                 new Dictionary<string, object?> { ["@dateCreation"] = dateCreation, ["@debut"] = cible.DateDebut, ["@fin"] = cible.DateFin });
 
             await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                "UPDATE dbo.F_JMOUV SET JM_Cloture = 0, JM_Impression = 0 WHERE JM_Date >= @debut AND JM_Date <= @fin",
+                "UPDATE {schema}.F_JMOUV SET JM_Cloture = 0, JM_Impression = 0 WHERE JM_Date >= @debut AND JM_Date <= @fin",
                 new Dictionary<string, object?> { ["@debut"] = cible.DateDebut, ["@fin"] = cible.DateFin });
 
             await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                $"UPDATE dbo.P_DOSSIER SET D_Archivage{n2} = 0");
+                $"UPDATE {{schema}}.P_DOSSIER SET D_Archivage{n2} = 0");
 
             await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                "UPDATE dbo.P_DOSSIER SET D_CloturePeriod = DATEADD(year, -1, @fin), D_ArchivePeriod = DATEADD(year, -1, @fin)",
+                "UPDATE {schema}.P_DOSSIER SET D_CloturePeriod = DATEADD(year, -1, @fin), D_ArchivePeriod = DATEADD(year, -1, @fin)",
                 new Dictionary<string, object?> { ["@fin"] = cible.DateFin });
 
             // Purge des lignes d'audit de la période — filtre exact porté de V1 (recherche
@@ -143,7 +143,7 @@ public sealed class AccountingRepository
             // volontairement imprécis dans l'original (simple correspondance de sous-chaîne
             // sur le jour du mois) ; préservé tel quel pour fidélité de comportement.
             await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                @"DELETE FROM dbo.F_AUDITCPTA
+                @"DELETE FROM {schema}.F_AUDITCPTA
                   WHERE ADT_Description LIKE '%' + RIGHT('0' + CAST(DAY(@debut) AS VARCHAR), 2) + '%'
                     AND ADT_Description LIKE '%' + RIGHT('0' + CAST(DAY(@fin) AS VARCHAR), 2) + '%'",
                 new Dictionary<string, object?> { ["@debut"] = cible.DateDebut, ["@fin"] = cible.DateFin });

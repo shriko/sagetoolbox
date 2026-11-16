@@ -20,7 +20,7 @@ public sealed class DocumentRepository
     {
         var hasEInvoice = await HasEInvoiceTableAsync();
         var transmise = hasEInvoice
-            ? "CASE WHEN EXISTS (SELECT 1 FROM dbo.F_ECDOCDN dn WHERE dn.DO_Type = de.DO_Type AND dn.DO_Piece = de.DO_Piece AND dn.DN_Statut > 0) THEN 1 ELSE 0 END"
+            ? "CASE WHEN EXISTS (SELECT 1 FROM {schema}.F_ECDOCDN dn WHERE dn.DO_Type = de.DO_Type AND dn.DO_Piece = de.DO_Piece AND dn.DN_Statut > 0) THEN 1 ELSE 0 END"
             : "0";
 
         var where = new List<string> { "de.DO_Domaine = 0", "de.DO_Type = 6", "de.DO_Valide = 1" };
@@ -49,8 +49,8 @@ public sealed class DocumentRepository
         var sql = $@"
             SELECT TOP {MaxResults + 1} de.DO_Type, de.DO_Piece, de.DO_Date, de.DO_Tiers,
                    ISNULL(ct.CT_Intitule, '') AS CT_Intitule, de.DO_TotalHT, {transmise} AS Transmise
-            FROM dbo.F_DOCENTETE de
-            LEFT JOIN dbo.F_COMPTET ct ON ct.CT_Num = de.DO_Tiers
+            FROM {{schema}}.F_DOCENTETE de
+            LEFT JOIN {{schema}}.F_COMPTET ct ON ct.CT_Num = de.DO_Tiers
             WHERE {string.Join(" AND ", where)}
             ORDER BY de.DO_Date DESC, de.DO_Piece DESC";
 
@@ -77,21 +77,21 @@ public sealed class DocumentRepository
     {
         var hasEInvoice = await HasEInvoiceTableAsync();
         var notSent = hasEInvoice
-            ? " AND NOT EXISTS (SELECT 1 FROM dbo.F_ECDOCDN dn WHERE dn.DO_Type = @type AND dn.DO_Piece = @piece AND dn.DN_Statut > 0)"
+            ? " AND NOT EXISTS (SELECT 1 FROM {schema}.F_ECDOCDN dn WHERE dn.DO_Type = @type AND dn.DO_Piece = @piece AND dn.DN_Statut > 0)"
             : string.Empty;
         var parameters = new Dictionary<string, object?> { ["@type"] = facture.DoType, ["@piece"] = facture.DoPiece };
 
         await DatabaseManager.Instance.RunInTransactionAsync(async (conn, tx) =>
         {
             var updated = await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                "UPDATE dbo.F_DOCENTETE SET DO_Valide = 0, DO_Imprim = 0, DO_Type = 6 " +
+                "UPDATE {schema}.F_DOCENTETE SET DO_Valide = 0, DO_Imprim = 0, DO_Type = 6 " +
                 "WHERE DO_Domaine = 0 AND DO_Type = @type AND DO_Piece = @piece AND DO_Valide = 1" + notSent,
                 parameters);
 
             if (updated != 1)
             {
                 var sent = hasEInvoice && Convert.ToInt32(await DatabaseManager.Instance.ExecuteScalarAsync(
-                    "SELECT COUNT(*) FROM dbo.F_ECDOCDN WHERE DO_Type = @type AND DO_Piece = @piece AND DN_Statut > 0",
+                    "SELECT COUNT(*) FROM {schema}.F_ECDOCDN WHERE DO_Type = @type AND DO_Piece = @piece AND DN_Statut > 0",
                     parameters)) > 0;
                 throw new InvalidOperationException(sent
                     ? FactureValidee.MotifEnvoiElectronique
@@ -99,14 +99,14 @@ public sealed class DocumentRepository
             }
 
             await DatabaseManager.ExecuteInTransactionAsync(conn, tx,
-                "UPDATE dbo.F_DOCLIGNE SET DO_Type = 6 WHERE DO_Type = @type AND DO_Piece = @piece",
+                "UPDATE {schema}.F_DOCLIGNE SET DO_Type = 6 WHERE DO_Type = @type AND DO_Piece = @piece",
                 parameters);
         });
     }
 
     private static async Task<bool> HasEInvoiceTableAsync()
     {
-        var id = await DatabaseManager.Instance.ExecuteScalarAsync("SELECT OBJECT_ID('dbo.F_ECDOCDN')");
+        var id = await DatabaseManager.Instance.ExecuteScalarAsync("SELECT OBJECT_ID('{schema}.F_ECDOCDN')");
         return id is not null and not DBNull;
     }
 

@@ -30,10 +30,10 @@ public sealed class CommercialIntegrityRepository
     {
         const string sql = @"
             SELECT DISTINCT TOP (@cap) DO_Type, DO_Piece, DO_Tiers
-            FROM dbo.F_DOCENTETE de
+            FROM {schema}.F_DOCENTETE de
             WHERE de.DO_Domaine IN (0, 1)
               AND de.DO_Tiers IS NOT NULL AND de.DO_Tiers <> ''
-              AND NOT EXISTS (SELECT 1 FROM dbo.F_COMPTET ct WHERE ct.CT_Num = de.DO_Tiers)";
+              AND NOT EXISTS (SELECT 1 FROM {schema}.F_COMPTET ct WHERE ct.CT_Num = de.DO_Tiers)";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Tiers inexistant sur entête de document vente/achat",
             r => $"Pièce {r["DO_Piece"]} (type {r["DO_Type"]}) — tiers {r["DO_Tiers"]}");
@@ -50,9 +50,9 @@ public sealed class CommercialIntegrityRepository
 
         const string sql = @"
             SELECT DISTINCT TOP (@cap) DO_Type, DO_Piece, DE_No
-            FROM dbo.F_DOCENTETE de
+            FROM {schema}.F_DOCENTETE de
             WHERE de.DE_No IS NOT NULL AND de.DE_No <> ''
-              AND NOT EXISTS (SELECT 1 FROM dbo.F_DEPOT dep WHERE dep.DE_No = de.DE_No)";
+              AND NOT EXISTS (SELECT 1 FROM {schema}.F_DEPOT dep WHERE dep.DE_No = de.DE_No)";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Dépôt de stockage inexistant",
             r => $"Pièce {r["DO_Piece"]} (type {r["DO_Type"]}) — dépôt {r["DE_No"]}");
@@ -69,9 +69,9 @@ public sealed class CommercialIntegrityRepository
 
         const string sql = @"
             SELECT DISTINCT TOP (@cap) DO_Type, DO_Piece, CO_No
-            FROM dbo.F_DOCENTETE de
+            FROM {schema}.F_DOCENTETE de
             WHERE de.CO_No IS NOT NULL AND de.CO_No <> ''
-              AND NOT EXISTS (SELECT 1 FROM dbo.F_COLLABORATEUR co WHERE co.CO_No = de.CO_No)";
+              AND NOT EXISTS (SELECT 1 FROM {schema}.F_COLLABORATEUR co WHERE co.CO_No = de.CO_No)";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Collaborateur inexistant",
             r => $"Pièce {r["DO_Piece"]} (type {r["DO_Type"]}) — collaborateur {r["CO_No"]}");
@@ -81,9 +81,9 @@ public sealed class CommercialIntegrityRepository
     {
         const string sql = @"
             SELECT DISTINCT TOP (@cap) DO_Type, DO_Piece, CT_NumPayeur
-            FROM dbo.F_DOCENTETE de
+            FROM {schema}.F_DOCENTETE de
             WHERE de.CT_NumPayeur IS NOT NULL AND de.CT_NumPayeur <> ''
-              AND NOT EXISTS (SELECT 1 FROM dbo.F_COMPTET ct WHERE ct.CT_Num = de.CT_NumPayeur)";
+              AND NOT EXISTS (SELECT 1 FROM {schema}.F_COMPTET ct WHERE ct.CT_Num = de.CT_NumPayeur)";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Tiers payeur/encaisseur inexistant",
             r => $"Pièce {r["DO_Piece"]} (type {r["DO_Type"]}) — tiers payeur {r["CT_NumPayeur"]}");
@@ -93,8 +93,8 @@ public sealed class CommercialIntegrityRepository
     {
         const string sql = @"
             SELECT TOP (@cap) dl.DO_Type, dl.DO_Piece, dl.DL_Ligne
-            FROM dbo.F_DOCLIGNE dl
-            LEFT JOIN dbo.F_DOCENTETE de ON dl.DO_Type = de.DO_Type AND dl.DO_Piece = de.DO_Piece
+            FROM {schema}.F_DOCLIGNE dl
+            LEFT JOIN {schema}.F_DOCENTETE de ON dl.DO_Type = de.DO_Type AND dl.DO_Piece = de.DO_Piece
             WHERE de.DO_Piece IS NULL";
         var rows = await DatabaseManager.Instance.ExecuteQueryAsync(sql, Cap());
         return ToIssues(rows, "Ligne de document orpheline (sans entête correspondante)",

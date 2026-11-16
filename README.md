@@ -11,14 +11,15 @@ Application **C# / WPF (.NET 10)**. Le guide d'utilisation est dans [docs/GUIDE_
 ### Connexion
 - Connexion manuelle (instance SQL + base) ou via fichier `.mae`
 - Connexion à une **instance seule**, sans base sélectionnée (champ base vide) — n'active alors que les outils marqués « Instance »
-- Mémorisation de la dernière connexion
+- **Connexion SPC (Sage Premium Cloud)** : serveur Azure SQL, base, utilisateur et mot de passe SQL (jamais enregistré). L'outil lit la liste des sociétés (`cbase.companies`) ; la société choisie détermine le schéma SQL (`name` = bijou, `schemaName` = soc_bijou → `soc_bijou.F_ECRITUREC`), seul élément qui change par rapport à Sage 100 sur SQL Server (`dbo.F_ECRITUREC`). Indisponibles en SPC (tuiles grisées) : sauvegarde et restauration, copie des utilisateurs, optimisation, fichiers de connexion, suppression du mot de passe administrateur, déconnexion des utilisateurs fantômes. Les autres outils fonctionnent sur la société sélectionnée ; l'Audit TVA liste les sociétés du dossier, et la déclôture n'offre pas de sauvegarde préalable
+- Mémorisation de la dernière connexion (mode, serveur, base, utilisateur)
 - Panneau d'information sur la base connectée (modules Sage installés, tailles des fichiers, chemin physique)
 - Panneau d'information sur l'**instance SQL** (version, édition/architecture, mode d'authentification, état FILESTREAM, répertoires par défaut data/log/backup)
 
 ### Organisation de l'écran
 - Colonne de gauche toujours visible : connexion, informations sur la base et l'instance, thème
 - Zone centrale : outils présentés en **tuiles** (icône + titre), regroupés par nature d'action ; un outil qui demande une saisie s'ouvre dans la zone centrale avec un bouton « ← Retour »
-- Badge **Instance** sur les outils qui n'ont besoin que de la connexion à l'instance (pas de base sélectionnée) ; liseré rouge sur les outils sensibles (déclôture, dévalidation, suppression du mot de passe administrateur, restauration)
+- Badge **Instance** sur les outils qui n'ont besoin que de la connexion à l'instance (pas de base sélectionnée) ; liseré rouge sur les outils sensibles (déclôture, dévalidation, recodification, suppression du mot de passe administrateur, restauration)
 - Journal en bas, visible en permanence
 
 ### Contrôle & audit (lecture seule)
@@ -35,6 +36,7 @@ Application **C# / WPF (.NET 10)**. Le guide d'utilisation est dans [docs/GUIDE_
 - **Dévalidation de factures** : liste des factures de vente validées non comptabilisées (n° de facture, date, n° et intitulé client, montant HT) avec sélection multiple et filtres (dates, client, n° de facture). Une facture déjà transmise en facturation électronique n'est pas dévalidable (elle existe côté Administration Fiscale : annuler et refaire une facture)
 - Création d'une Information Libre sur les tables Sage qui l'acceptent (comptes, tiers, écritures, immobilisations, ressources, articles, numéros de série/lot, documents, abonnements), texte limité à 69 caractères comme dans Sage (avec miroir automatique F_DOCENTETE→F_ABOENTETE et F_DOCLIGNE→F_ABOLIGNE)
 - **Enrichissement tiers** : fiabilise les SIRET / SIREN des fiches clients et fournisseurs en les rapprochant de l'API officielle « Recherche d'entreprises » (données INSEE / Sirene, accès internet requis). Statuts Valide, Trouvé, Multiples, A vérifier, Radié, Non trouvé, Erreur ou Ignoré (détection des établissements fermés et des déménagements via le SIREN), traitement concurrent avec limitation de débit et bouton Stop, choix manuel du candidat par double-clic, export Excel des lignes confirmées. Mise à jour de F_COMPTET au choix (SIRET, nom, adresse, n° de TVA, mise en sommeil des tiers radiés), protégée par des savepoints par fiche, avec journal d'audit des valeurs avant / après (`%APPDATA%\SageToolbox\mises_a_jour_tiers.txt`)
+- **Recodification (bêta)** : changement en masse des codes des comptes généraux, comptes tiers, journaux, comptes analytiques (par plan), familles d'articles et articles, avec saisie dans la grille ou import / export Excel. Contrôles des nouveaux codes (longueur maximale, longueur imposée par le dossier, doublons, codes déjà existants), **fusion** d'une fiche dans une fiche existante de même nature, et traitement SQL en une seule transaction (annulation totale en cas d'erreur ou d'écart de contrôle) qui reporte le nouveau code dans toutes les tables Sage concernées. Contrôles préalables (aucun autre utilisateur, sauvegarde COPY_ONLY récente), rapport HTML détaillé dans `Documents\SageToolbox\Recodification`. Fonctionne en SPC : les tables sont préfixées du schéma de la société, et les sessions et la sauvegarde, inaccessibles sur le serveur Azure partagé, sont confirmées par l'utilisateur
 - Correction des adresses de livraison manquantes
 - Correction des accents mal encodés
 
@@ -77,6 +79,7 @@ src/SageToolbox/
 ├── Repositories/     → Un repository par domaine métier, toute la logique SQL
 ├── Views/           → Écrans d'outils affichés dans la zone centrale (ToolPanel) + thèmes XAML (Views/Themes)
 ├── Tva/             → Audit TVA : contrôles SQL en lecture seule et générateurs de rapports Word / PDF / Excel
+├── Recodification/  → Recodification : modèles de scripts SQL (Sql/), validation, exécution transactionnelle, rapport, import / export Excel
 ├── Rfe/             → Listing RFE : adresses de facturation électronique des clients, contacts, export Excel
 ├── Enrichissement/  → Enrichissement tiers : rapprochement SIRET / SIREN via l'API Recherche d'entreprises, mise à jour de F_COMPTET
 ├── Schematron/      → Contrôle de conformité des factures électroniques : règles embarquées, moteur Saxon, extraction Factur-X

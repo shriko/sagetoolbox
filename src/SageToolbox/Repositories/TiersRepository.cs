@@ -20,11 +20,11 @@ public sealed class TiersRepository
     public async Task<int> CorrigerAdressesLivraisonAsync()
     {
         var maxLiNoResult = await DatabaseManager.Instance.ExecuteScalarAsync(
-            "SELECT ISNULL(MAX(LI_No), 0) FROM dbo.F_LIVRAISON");
+            "SELECT ISNULL(MAX(LI_No), 0) FROM {schema}.F_LIVRAISON");
         var maxLiNo = Convert.ToInt32(maxLiNoResult);
 
         const string insertSql = @"
-            INSERT INTO dbo.F_LIVRAISON
+            INSERT INTO {schema}.F_LIVRAISON
                 (LI_No, CT_Num, LI_Intitule, LI_Adresse, LI_Complement, LI_CodePostal, LI_Ville,
                  LI_CodeRegion, LI_Pays, LI_Contact, N_Expedition, N_Condition, LI_Telephone,
                  LI_Telecopie, LI_EMail, LI_DelaiTransport, LI_Commentaire, LI_Principal, LI_AdresseFact)
@@ -36,19 +36,19 @@ public sealed class TiersRepository
                 LEFT(ISNULL(CT_Pays, ''), 35), LEFT(ISNULL(CT_Contact, ''), 35), N_Expedition, N_Condition,
                 LEFT(ISNULL(CT_Telephone, ''), 21), LEFT(ISNULL(CT_Telecopie, ''), 21), LEFT(ISNULL(CT_EMail, ''), 69),
                 ISNULL(CT_DelaiTransport, 0), CT_Commentaire, 1, 0
-            FROM dbo.F_COMPTET
+            FROM {schema}.F_COMPTET
             WHERE NOT EXISTS (
-                SELECT 1 FROM dbo.F_LIVRAISON AS fl WHERE fl.CT_Num = F_COMPTET.CT_Num AND fl.LI_Principal = 1
+                SELECT 1 FROM {schema}.F_LIVRAISON AS fl WHERE fl.CT_Num = F_COMPTET.CT_Num AND fl.LI_Principal = 1
             ) AND CT_Type = 0;";
 
         var created = await DatabaseManager.Instance.ExecuteNonQueryAsync(insertSql,
             new Dictionary<string, object?> { ["@lino"] = maxLiNo });
 
         const string updateSql = @"
-            UPDATE dbo.F_DOCENTETE
+            UPDATE {schema}.F_DOCENTETE
             SET LI_No = fl.LI_No
-            FROM dbo.F_DOCENTETE de
-            INNER JOIN dbo.F_LIVRAISON fl ON de.DO_Tiers = fl.CT_Num AND fl.LI_Principal = 1
+            FROM {schema}.F_DOCENTETE de
+            INNER JOIN {schema}.F_LIVRAISON fl ON de.DO_Tiers = fl.CT_Num AND fl.LI_Principal = 1
             WHERE de.LI_No = 0;";
         await DatabaseManager.Instance.ExecuteNonQueryAsync(updateSql);
 

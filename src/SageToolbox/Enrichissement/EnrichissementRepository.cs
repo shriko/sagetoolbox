@@ -17,10 +17,11 @@ public sealed class EnrichissementRepository
     /// </summary>
     public async Task<List<TierRecord>> FetchTiersAsync(TierType type, bool validateExistingSiret, CancellationToken ct)
     {
+        var table = DatabaseManager.Instance.ResolveSchema("{schema}.F_COMPTET");
         var sql = $"""
             SELECT CT_Num, CT_Intitule, CT_Adresse, CT_Complement, CT_CodePostal, CT_Ville,
                    CT_Siret, CT_Type, CT_Identifiant, CT_Sommeil
-            FROM F_COMPTET
+            FROM {table}
             WHERE (CT_Sommeil IS NULL OR CT_Sommeil = 0)
               {(type != TierType.Tous ? "AND CT_Type = @type" : "")}
               {(validateExistingSiret
@@ -115,7 +116,7 @@ public sealed class EnrichissementRepository
         if (columns.Count == 0) return;
 
         var setClauses = columns.Keys.Select((col, idx) => $"{SqlIdentifier.Bracket(col)} = @p{idx}");
-        var sql = $"UPDATE F_COMPTET SET {string.Join(", ", setClauses)} WHERE CT_Num = @ctNum";
+        var sql = DatabaseManager.Instance.ResolveSchema($"UPDATE {{schema}}.F_COMPTET SET {string.Join(", ", setClauses)} WHERE CT_Num = @ctNum");
 
         await using var cmd = new SqlCommand(sql, conn, tx);
         cmd.Parameters.AddWithValue("@ctNum", ctNum);

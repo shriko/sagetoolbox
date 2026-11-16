@@ -3,6 +3,21 @@ using Microsoft.Data.SqlClient;
 
 namespace SageToolbox.Core;
 
+public enum ConnectionMode
+{
+    /// <summary>Sage 100 sur SQL Server : une base par dossier, authentification Windows, schéma dbo.</summary>
+    OnPremise,
+
+    /// <summary>Sage Premium Cloud (SPC) : serveur Azure SQL, authentification SQL, une société par schéma.</summary>
+    Spc
+}
+
+/// <summary>Société d'un dossier SPC (table cbase.companies) : <see cref="SchemaName"/> préfixe ses tables Sage.</summary>
+public sealed record SpcCompany(string Name, string SchemaName)
+{
+    public override string ToString() => Name;
+}
+
 /// <summary>
 /// Accès SQL Server en authentification Windows intégrée (Integrated Security=true),
 /// via le driver natif Microsoft.Data.SqlClient. Remplace la logique de sélection du
@@ -14,12 +29,83 @@ public sealed class DatabaseManager
     private static readonly Lazy<DatabaseManager> LazyInstance = new(() => new DatabaseManager());
     public static DatabaseManager Instance => LazyInstance.Value;
 
+    private SqlConnectionStringBuilder? _spcBuilder;
+
+    public ConnectionMode Mode { get; private set; } = ConnectionMode.OnPremise;
+    public bool IsSpc => Mode == ConnectionMode.Spc;
+
+    /// <summary>Serveur SQL (en SPC : serveur Azure).</summary>
     public string? CurrentInstance { get; private set; }
+
+    /// <summary>Base Sage de travail (en SPC : nom de la société sélectionnée).</summary>
     public string? CurrentDatabase { get; private set; }
+
+    /// <summary>Schéma SQL de la société sélectionnée en SPC ; null hors SPC.</summary>
+    public string? CurrentSchema { get; private set; }
+
+    /// <summary>Schéma qui préfixe les tables Sage : celui de la société en SPC, dbo sinon.</summary>
+    public string SchemaName => CurrentSchema ?? "dbo";
+
+    /// <summary>Base SQL physique à laquelle on se connecte en SPC (la société est un schéma de cette base).</summary>
+    public string? SpcDatabase => _spcBuilder?.InitialCatalog;
+
+    /// <summary>Sociétés du dossier SPC lues à la connexion (cbase.companies).</summary>
+    public IReadOnlyList<SpcCompany> SpcCompanies { get; private set; } = [];
+
     public bool IsConnected => CurrentInstance is not null && CurrentDatabase is not null;
 
     private DatabaseManager()
     {
+    }
+
+    public static SqlConnectionStringBuilder BuildSpcConnectionString(string server, string database, string user, string password) =>
+        new()
+        {
+            DataSource = server,
+            InitialCatalog = database,
+            UserID = user,
+            Password = password,
+            Encrypt = true,
+            TrustServerCertificate = false,
+            ConnectTimeout = 30,
+            ApplicationName = "Sage Toolbox"
+        };
+
+    /// <summary>
+    /// Connexion SPC : ouvre le serveur Azure SQL, lit les sociétés (cbase.companies) et passe en mode SPC.
+    /// Aucune société n'est sélectionnée à l'issue : voir <see cref="SelectSpcCompany"/>. En cas d'échec l'état
+    /// courant est conservé et l'exception est propagée.
+    /// </summary>
+    public async Task<List<SpcCompany>> ConnectSpcAsync(SqlConnectionStringBuilder builder)
+    {
+        var companies = new List<SpcCompany>();
+        await using (var conn = new SqlConnection(builder.ConnectionString))
+        {
+            await conn.OpenAsync();
+            await using var cmd = new SqlCommand("SELECT name, schemaName FROM cbase.companies ORDER BY name", conn);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                companies.Add(new SpcCompany(reader.GetString(0).Trim(), reader.GetString(1).Trim()));
+        }
+
+        Mode = ConnectionMode.Spc;
+        _spcBuilder = builder;
+        CurrentInstance = builder.DataSource;
+        CurrentDatabase = null;
+        CurrentSchema = null;
+        SpcCompanies = companies;
+        return companies;
+    }
+
+    /// <summary>Sélectionne la société SPC de travail : toutes les tables Sage sont alors préfixées par son schéma.</summary>
+    public void SelectSpcCompany(SpcCompany company)
+    {
+        if (!IsSpc) throw new InvalidOperationException("Aucune connexion SPC active.");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(company.SchemaName, "^[A-Za-z0-9_]+$"))
+            throw new ArgumentException($"Nom de schéma invalide : '{company.SchemaName}'", nameof(company));
+
+        CurrentDatabase = company.Name;
+        CurrentSchema = company.SchemaName;
     }
 
     private static string BuildConnectionString(string instance, string database)
@@ -53,6 +139,7 @@ public sealed class DatabaseManager
 
     public void Connect(string instance, string database)
     {
+        ResetSpc();
         CurrentInstance = instance;
         CurrentDatabase = database;
     }
@@ -61,18 +148,31 @@ public sealed class DatabaseManager
     /// "Serveur &amp; Instance" qui ne nécessitent pas de base précise.</summary>
     public void ConnectInstanceOnly(string instance)
     {
+        ResetSpc();
         CurrentInstance = instance;
         CurrentDatabase = null;
     }
 
     public void Disconnect()
     {
+        ResetSpc();
         CurrentInstance = null;
         CurrentDatabase = null;
     }
 
+    private void ResetSpc()
+    {
+        Mode = ConnectionMode.OnPremise;
+        _spcBuilder = null;
+        CurrentSchema = null;
+        SpcCompanies = [];
+    }
+
     public SqlConnection CreateConnection(string? instanceOverride = null, string? databaseOverride = null)
     {
+        // SPC : une seule base Azure, jamais de bascule vers master ou une autre base.
+        if (IsSpc) return new SqlConnection(_spcBuilder!.ConnectionString);
+
         var instance = instanceOverride ?? CurrentInstance
             ?? throw new InvalidOperationException("Aucune connexion active.");
         var database = databaseOverride ?? CurrentDatabase
@@ -81,10 +181,11 @@ public sealed class DatabaseManager
     }
 
     /// <summary>
-    /// Substitution du placeholder de schéma ({schema} -> [dbo]), conservée pour
-    /// parité avec la V1/V2 (schéma Sage toujours dbo en pratique, mais centralisé ici).
+    /// Substitution du placeholder de schéma ({schema}) par le schéma courant : [dbo] pour Sage 100 SQL Server,
+    /// le schéma de la société sélectionnée en SPC. Tout SQL qui nomme une table Sage doit l'utiliser
+    /// ({schema}.F_COMPTET) et passer par cette méthode lorsqu'il crée lui-même sa commande.
     /// </summary>
-    private static string ResolveSchema(string sql) => sql.Replace("{schema}", "[dbo]");
+    public string ResolveSchema(string sql) => sql.Replace("{schema}", QuoteIdentifier(SchemaName));
 
     public async Task<DataTable> ExecuteQueryAsync(
         string sql,
@@ -167,7 +268,7 @@ public sealed class DatabaseManager
         string sql,
         IDictionary<string, object?>? parameters = null)
     {
-        await using var cmd = new SqlCommand(ResolveSchema(sql), conn, tx);
+        await using var cmd = new SqlCommand(Instance.ResolveSchema(sql), conn, tx);
         AddParameters(cmd, parameters);
         return await cmd.ExecuteNonQueryAsync();
     }
@@ -190,7 +291,7 @@ public sealed class DatabaseManager
     {
         var result = await ExecuteScalarAsync(
             "SELECT OBJECT_ID(@name)",
-            new Dictionary<string, object?> { ["@name"] = "dbo." + tableName },
+            new Dictionary<string, object?> { ["@name"] = SchemaName + "." + tableName },
             databaseOverride);
         return result is not null && result is not DBNull;
     }
@@ -200,11 +301,12 @@ public sealed class DatabaseManager
         const string sql = @"
             SELECT COUNT(*) FROM sys.columns c
             JOIN sys.tables t ON c.object_id = t.object_id
-            WHERE t.name = @t AND c.name = @c";
+            WHERE t.name = @t AND c.name = @c AND t.schema_id = SCHEMA_ID(@schema)";
         var result = await ExecuteScalarAsync(sql, new Dictionary<string, object?>
         {
             ["@t"] = tableName,
-            ["@c"] = columnName
+            ["@c"] = columnName,
+            ["@schema"] = SchemaName
         }, databaseOverride);
         return Convert.ToInt32(result) > 0;
     }

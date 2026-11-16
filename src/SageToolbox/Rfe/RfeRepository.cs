@@ -25,7 +25,7 @@ SELECT
     CFAR_CodeRoutageVal as [Maille Adresse],
     CASE CFAR_Actif WHEN 0 THEN 'Non' WHEN 1 THEN 'Oui' END AS Actif,
     COUNT(*) OVER (PARTITION BY F.CT_NUM) AS [Nb Adresses]
-FROM F_COMPTETFACTRECEPTION F LEFT JOIN F_COMPTET C on F.CT_NUM = C.CT_NUM
+FROM {schema}.F_COMPTETFACTRECEPTION F LEFT JOIN {schema}.F_COMPTET C on F.CT_NUM = C.CT_NUM
 WHERE CT_SOMMEIL = 0 and CT_Type = 0
 ORDER BY F.CT_NUM;
 ";
@@ -37,7 +37,7 @@ SELECT C.CT_NUM as Compte,
        CT_Fonction as Fonction,
        C.CT_Telephone as Téléphone,
        C.CT_EMail as [E-mail]
-FROM F_CONTACTT C LEFT JOIN F_COMPTET CT on C.CT_NUM = CT.CT_NUM
+FROM {schema}.F_CONTACTT C LEFT JOIN {schema}.F_COMPTET CT on C.CT_NUM = CT.CT_NUM
 WHERE CT_TYPE = 0 and CT_SOMMEIL = 0
 ";
 

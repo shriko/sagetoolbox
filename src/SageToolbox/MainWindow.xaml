@@ -31,15 +31,43 @@
 
                 <Border Grid.Row="2" Style="{StaticResource CardBorder}" Margin="0,0,0,12" Padding="10">
                     <StackPanel>
-                        <TextBlock Text="Connexion" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,2" />
-                        <TextBlock Text="Instance SQL" Style="{StaticResource SectionLabel}" />
-                        <TextBox x:Name="InstanceInput" />
-                        <TextBlock Text="Base de données" Style="{StaticResource SectionLabel}" />
-                        <TextBox x:Name="DatabaseInput" />
-                        <Button x:Name="ConnectButton" Content="Connecter" Style="{StaticResource ActionButton}"
-                                Margin="0,10,0,6" HorizontalContentAlignment="Center" Click="ConnectButton_Click" />
-                        <Button x:Name="OpenMaeButton" Content="Ouvrir fichier local (.mae)" Style="{StaticResource SecondaryButton}"
-                                Margin="0" HorizontalContentAlignment="Center" Click="OpenMaeButton_Click" />
+                        <TextBlock Text="Connexion" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                            <RadioButton x:Name="ModeOnPremiseRadio" Content="Sage 100" GroupName="ConnectionMode" IsChecked="True"
+                                         Margin="0,0,16,0" Checked="ConnectionMode_Changed"
+                                         ToolTip="Sage 100 sur SQL Server : une base par dossier, authentification Windows" />
+                            <RadioButton x:Name="ModeSpcRadio" Content="SPC (Azure)" GroupName="ConnectionMode"
+                                         Checked="ConnectionMode_Changed"
+                                         ToolTip="Sage Premium Cloud : serveur Azure SQL, authentification SQL, une société par schéma" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="OnPremisePanel">
+                            <TextBlock Text="Instance SQL" Style="{StaticResource SectionLabel}" />
+                            <TextBox x:Name="InstanceInput" />
+                            <TextBlock Text="Base de données" Style="{StaticResource SectionLabel}" />
+                            <TextBox x:Name="DatabaseInput" />
+                            <Button x:Name="ConnectButton" Content="Connecter" Style="{StaticResource ActionButton}"
+                                    Margin="0,10,0,6" HorizontalContentAlignment="Center" Click="ConnectButton_Click" />
+                            <Button x:Name="OpenMaeButton" Content="Ouvrir fichier local (.mae)" Style="{StaticResource SecondaryButton}"
+                                    Margin="0" HorizontalContentAlignment="Center" Click="OpenMaeButton_Click" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="SpcPanel" Visibility="Collapsed">
+                            <TextBlock Text="Serveur Azure SQL" Style="{StaticResource SectionLabel}" />
+                            <TextBox x:Name="SpcServerInput" ToolTip="Ex : monserveur.database.windows.net" />
+                            <TextBlock Text="Base de données" Style="{StaticResource SectionLabel}" />
+                            <TextBox x:Name="SpcDatabaseInput" />
+                            <TextBlock Text="Utilisateur SQL" Style="{StaticResource SectionLabel}" />
+                            <TextBox x:Name="SpcUserInput" />
+                            <TextBlock Text="Mot de passe" Style="{StaticResource SectionLabel}" />
+                            <PasswordBox x:Name="SpcPasswordBox" />
+                            <Button x:Name="SpcConnectButton" Content="Connecter" Style="{StaticResource ActionButton}"
+                                    Margin="0,10,0,0" HorizontalContentAlignment="Center" Click="SpcConnectButton_Click" />
+                            <StackPanel x:Name="SpcCompanyPanel" Visibility="Collapsed">
+                                <TextBlock Text="Société" Style="{StaticResource SectionLabel}" />
+                                <ComboBox x:Name="SpcCompanyCombo" DisplayMemberPath="Name" SelectionChanged="SpcCompanyCombo_SelectionChanged" />
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -119,6 +147,7 @@
                         <Button x:Name="BtnDecloture" Tag="&#xE785;" Content="Déclôture d'exercice" Style="{StaticResource DangerTileButton}" Click="BtnDecloture_Click" />
                         <Button x:Name="BtnCreerInfoLibre" Tag="&#xE710;" Content="Créer information libre" Style="{StaticResource TileButton}" Click="BtnCreerInfoLibre_Click" />
                         <Button x:Name="BtnEnrichissement" Tag="&#xE77B;" Content="Enrichissement tiers" Style="{StaticResource TileButton}" Click="BtnEnrichissement_Click" />
+                        <Button x:Name="BtnRecodification" Tag="&#xE70F;" Content="Recodification" Style="{StaticResource DangerTileButton}" views:Tile.Beta="True" Click="BtnRecodification_Click" />
                     </WrapPanel>
                     <TextBlock Text="UTILISATEURS &amp; SÉCURITÉ" Style="{StaticResource TileSectionTitle}" />
                     <WrapPanel Margin="0,0,0,12">

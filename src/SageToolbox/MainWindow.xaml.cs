@@ -30,6 +30,11 @@ public partial class MainWindow : Window
     /// (utilisables même en connexion instance seule, sans base sélectionnée).</summary>
     private readonly List<Button> _instanceButtons = new();
 
+    /// <summary>Outils impossibles en SPC (serveur Azure partagé) : sauvegarde, restauration, copie des utilisateurs,
+    /// optimisation, fichiers de connexion, mot de passe administrateur, sessions fantômes.</summary>
+    private readonly HashSet<Button> _spcUnavailableButtons = new();
+    private bool _updatingCompanies;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -42,17 +47,25 @@ public partial class MainWindow : Window
         _databaseButtons.AddRange(new[]
         {
             BtnListTriggers, BtnListingRfe, BtnIntegrityCompta, BtnIntegrityCial,
-            BtnDecloture, BtnDevaliderFacture, BtnCreerInfoLibre, BtnEnrichissement, BtnCorrigerAdresses, BtnCorrigerAccents,
+            BtnDecloture, BtnDevaliderFacture, BtnCreerInfoLibre, BtnEnrichissement, BtnRecodification, BtnCorrigerAdresses, BtnCorrigerAccents,
             BtnResetAdminPwd, BtnPurgeGhosts
         });
         _instanceButtons.AddRange(new[]
         {
             BtnOptimize, BtnGenConnFiles, BtnCopyUsers, BtnRestoreSql, BtnBackupAll, BtnAuditTva
         });
+        _spcUnavailableButtons.UnionWith(new[]
+        {
+            BtnOptimize, BtnGenConnFiles, BtnCopyUsers, BtnRestoreSql, BtnBackupAll, BtnResetAdminPwd, BtnPurgeGhosts
+        });
         RefreshButtonStates();
 
         InstanceInput.Text = ConfigManager.Instance.Config.LastInstance ?? string.Empty;
         DatabaseInput.Text = ConfigManager.Instance.Config.LastDatabase ?? string.Empty;
+        SpcServerInput.Text = ConfigManager.Instance.Config.SpcServer ?? string.Empty;
+        SpcDatabaseInput.Text = ConfigManager.Instance.Config.SpcDatabase ?? string.Empty;
+        SpcUserInput.Text = ConfigManager.Instance.Config.SpcUser ?? string.Empty;
+        if (ConfigManager.Instance.Config.ConnectionMode == "Spc") ModeSpcRadio.IsChecked = true;
 
         var savedTheme = ThemeManager.ParseSaved(ConfigManager.Instance.Config.Theme);
         ThemeCombo.SelectedIndex = savedTheme switch
@@ -93,8 +106,17 @@ public partial class MainWindow : Window
         var instanceConnected = DatabaseManager.Instance.CurrentInstance is not null;
         var databaseConnected = DatabaseManager.Instance.CurrentDatabase is not null;
 
-        foreach (var button in _instanceButtons) button.IsEnabled = instanceConnected;
-        foreach (var button in _databaseButtons) button.IsEnabled = databaseConnected;
+        foreach (var button in _instanceButtons) button.IsEnabled = instanceConnected && !IsBlockedInSpc(button);
+        foreach (var button in _databaseButtons) button.IsEnabled = databaseConnected && !IsBlockedInSpc(button);
+    }
+
+    /// <summary>Vrai (et infobulle explicative) si l'outil n'existe pas en SPC et que la connexion courante est SPC.</summary>
+    private bool IsBlockedInSpc(Button button)
+    {
+        var blocked = DatabaseManager.Instance.IsSpc && _spcUnavailableButtons.Contains(button);
+        if (blocked) button.ToolTip = $"{button.Content} — non disponible en mode SPC";
+        else button.ClearValue(ToolTipProperty);
+        return blocked;
     }
 
     // ----- Connexion -----
@@ -163,6 +185,7 @@ public partial class MainWindow : Window
             }
 
             DatabaseManager.Instance.Connect(instance, database);
+            ConfigManager.Instance.Config.ConnectionMode = "OnPremise";
             ConfigManager.Instance.SaveLastConnection(instance, database);
             Logger.Instance.Success($"Connecté à {database} sur {instance}.");
             RefreshButtonStates();
@@ -239,6 +262,7 @@ public partial class MainWindow : Window
             }
 
             DatabaseManager.Instance.ConnectInstanceOnly(instance);
+            ConfigManager.Instance.Config.ConnectionMode = "OnPremise";
             ConfigManager.Instance.Config.LastInstance = instance;
             ConfigManager.Instance.Save();
             Logger.Instance.Success($"Connecté à l'instance {instance} (fonctions Serveur & Instance disponibles).");
@@ -259,6 +283,122 @@ public partial class MainWindow : Window
         {
             Mouse.OverrideCursor = null;
         }
+    }
+
+    // ----- Connexion SPC (Sage Premium Cloud) -----
+
+    private void ConnectionMode_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded && OnPremisePanel is null) return;
+        var spc = ModeSpcRadio.IsChecked == true;
+        OnPremisePanel.Visibility = spc ? Visibility.Collapsed : Visibility.Visible;
+        SpcPanel.Visibility = spc ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void SpcConnectButton_Click(object sender, RoutedEventArgs e)
+    {
+        var server = SpcServerInput.Text.Trim();
+        var database = SpcDatabaseInput.Text.Trim();
+        var user = SpcUserInput.Text.Trim();
+        if (server.Length == 0 || database.Length == 0 || user.Length == 0 || SpcPasswordBox.Password.Length == 0)
+        {
+            Logger.Instance.Warning("SPC : merci de renseigner le serveur, la base, l'utilisateur et le mot de passe.");
+            return;
+        }
+
+        await ConnectSpcAsync(DatabaseManager.BuildSpcConnectionString(server, database, user, SpcPasswordBox.Password));
+    }
+
+    /// <summary>Connexion au serveur Azure SQL d'un dossier SPC puis lecture des sociétés (cbase.companies).
+    /// Une société unique est sélectionnée d'office ; sinon l'utilisateur la choisit dans la liste.</summary>
+    private async Task ConnectSpcAsync(Microsoft.Data.SqlClient.SqlConnectionStringBuilder builder)
+    {
+        ClosePanel();
+        Mouse.OverrideCursor = Cursors.Wait;
+        try
+        {
+            Logger.Instance.Info($"Connexion SPC à {builder.DataSource} / {builder.InitialCatalog}...");
+            var companies = await DatabaseManager.Instance.ConnectSpcAsync(builder);
+
+            var config = ConfigManager.Instance.Config;
+            config.ConnectionMode = "Spc";
+            config.SpcServer = builder.DataSource;
+            config.SpcDatabase = builder.InitialCatalog;
+            config.SpcUser = builder.UserID;
+            ConfigManager.Instance.Save();
+
+            _updatingCompanies = true;
+            SpcCompanyCombo.ItemsSource = companies;
+            SpcCompanyCombo.SelectedIndex = -1;
+            _updatingCompanies = false;
+            SpcCompanyPanel.Visibility = Visibility.Visible;
+
+            Logger.Instance.Success($"Connecté au serveur SPC {builder.DataSource} : {companies.Count} société(s).");
+            ShowSpcInstanceInfo(companies.Count);
+            DbNameText.Text = "Aucune société sélectionnée";
+            DbProductsText.Text = companies.Count == 0 ? "Aucune société trouvée (cbase.companies vide)" : "Choisissez une société dans la liste";
+            DbSizeText.Text = string.Empty;
+            DbPathText.Text = string.Empty;
+            RefreshButtonStates();
+
+            if (companies.Count == 1) SpcCompanyCombo.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Instance.Error($"Échec de connexion SPC : {ex.Message}");
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
+    }
+
+    private async void SpcCompanyCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingCompanies || SpcCompanyCombo.SelectedItem is not SpcCompany company) return;
+
+        ClosePanel();
+        Mouse.OverrideCursor = Cursors.Wait;
+        try
+        {
+            DatabaseManager.Instance.SelectSpcCompany(company);
+            Logger.Instance.Success($"Société SPC sélectionnée : {company.Name} (schéma {company.SchemaName}).");
+            RefreshButtonStates();
+
+            DbNameText.Text = company.Name;
+            DbProductsText.Text = "Chargement des informations...";
+            DbSizeText.Text = $"Schéma : {company.SchemaName}";
+            DbPathText.Text = $"Mode SPC — base {DatabaseManager.Instance.SpcDatabase}";
+
+            var info = await _serverRepository.GetSpcCompanyInfoAsync(company);
+            DbProductsText.Text = string.Join(", ", info.InstalledProducts());
+            if (string.IsNullOrEmpty(DbProductsText.Text))
+                DbProductsText.Text = "Aucun module Sage détecté";
+        }
+        catch (Exception ex)
+        {
+            DbProductsText.Text = "Informations indisponibles";
+            Logger.Instance.Warning($"Société SPC {company.Name} : lecture des informations impossible — {ex.Message}");
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
+    }
+
+    /// <summary>Bandeau « Info. Instance SQL » en SPC : pas de version, de chemins ni de FILESTREAM côté serveur Azure.</summary>
+    private void ShowSpcInstanceInfo(int companyCount)
+    {
+        InstanceNotConnectedText.Visibility = Visibility.Collapsed;
+        foreach (var tb in new[] { InstanceVersionText, InstanceEditionText, InstanceAuthText, InstanceFilestreamText })
+            tb.Visibility = Visibility.Visible;
+        foreach (var tb in new[] { InstanceDataPathText, InstanceLogPathText, InstanceBackupPathText })
+            tb.Visibility = Visibility.Collapsed;
+
+        InstanceVersionText.Text = "Sage Premium Cloud (SPC)";
+        InstanceEditionText.Text = $"Serveur : {DatabaseManager.Instance.CurrentInstance}";
+        InstanceAuthText.Text = $"Base : {DatabaseManager.Instance.SpcDatabase} — authentification SQL";
+        InstanceFilestreamText.Text = $"{companyCount} société(s)";
     }
 
     // ----- Panneaux d'outils (zone centrale) -----
@@ -599,4 +739,6 @@ public partial class MainWindow : Window
     private void BtnListingRfe_Click(object sender, RoutedEventArgs e) => OpenPanel(new ListingRfePanel());
 
     private void BtnEnrichissement_Click(object sender, RoutedEventArgs e) => OpenPanel(new EnrichissementPanel());
+
+    private void BtnRecodification_Click(object sender, RoutedEventArgs e) => OpenPanel(new RecodificationPanel());
 }
