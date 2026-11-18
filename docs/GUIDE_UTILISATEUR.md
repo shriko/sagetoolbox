@@ -42,9 +42,14 @@ Chaque tuile correspond à un outil. Cliquer dessus lance directement l'action a
 
 ### Se connecter en SPC (Sage Premium Cloud)
 
-Dans la colonne de gauche, choisissez **SPC (Azure)** à la place de **Sage 100**, puis renseignez le **serveur Azure SQL** (ex. `monserveur.database.windows.net`), la **base de données**, l'**utilisateur SQL** et son **mot de passe** (le mot de passe n'est jamais mémorisé). Après **Connecter**, la liste **Société** apparaît : elle reprend les sociétés du dossier (table `cbase.companies`). Choisissez la société de travail (si le dossier n'en contient qu'une, elle est sélectionnée d'office) : l'outil travaille alors dans le schéma SQL de cette société. Le bandeau de gauche affiche la société, son schéma et ses modules Sage.
+**Détection automatique** : sur un poste où Sage 100 est relié à Sage Partner Cloud, l'outil retrouve seul, au démarrage, le serveur Azure, la base, l'utilisateur et le mot de passe (lus dans la configuration que Sage 100 a posée sur le poste, le mot de passe n'est ni affiché ni enregistré), passe en mode SPC et se connecte ; il ne reste qu'à choisir la société. Si le dossier contient plusieurs bases, la dernière utilisée (sinon la première) est retenue et le journal liste les autres. Le bouton **Détecter sur ce poste** relance la détection à la demande ; sur un poste sans SPC, rien ne change et l'outil démarre en mode Sage 100.
+
+**Saisie manuelle** : dans la colonne de gauche, choisissez **SPC (Azure)** à la place de **Sage 100**, puis renseignez le **serveur Azure SQL** (ex. `monserveur.database.windows.net`), la **base de données**, l'**utilisateur SQL** et son **mot de passe** (le mot de passe n'est jamais mémorisé). Après **Connecter**, la liste **Société** apparaît : elle reprend les sociétés du dossier (table `cbase.companies`). Choisissez la société de travail (si le dossier n'en contient qu'une, elle est sélectionnée d'office) : l'outil travaille alors dans le schéma SQL de cette société. Le bandeau de gauche affiche la société, son schéma et ses modules Sage.
 
 En SPC, certains outils n'existent pas car le serveur Azure est partagé : **sauvegarde et restauration, copie des utilisateurs, optimisation, fichiers de connexion, suppression du mot de passe administrateur et déconnexion des utilisateurs fantômes**. Leurs tuiles sont grisées (l'infobulle l'indique). La **déclôture d'exercice** n'y propose pas de sauvegarde préalable. L'**Audit TVA** liste les sociétés du dossier au lieu des bases de l'instance.
+
+### Les mises à jour
+Au démarrage, l'outil vérifie s'il existe une version plus récente publiée sur GitHub. Si c'est le cas, il propose de la **télécharger et l'installer** : acceptez pour que `SageToolbox.exe` soit remplacé et relancé automatiquement, ou refusez pour continuer avec la version actuelle. Sans accès internet, la vérification est simplement ignorée (une ligne d'avertissement apparaît dans le journal). Le détail des changements de chaque version figure dans le `CHANGELOG.md` et sur la page de la release.
 
 ### Le journal
 
@@ -58,7 +63,7 @@ En bas du bandeau de gauche, un sélecteur permet de choisir l'apparence : **Sys
 
 ## Détail des outils
 
-Les outils sont présentés en tuiles dans la zone centrale, regroupés par nature d'action. Un badge **Instance** signale les outils qui n'ont besoin que de la connexion à l'instance ; un liseré **rouge** signale les outils sensibles.
+Les outils sont présentés en tuiles dans la zone centrale, regroupés par nature d'action. Un badge **Instance** signale les outils qui n'ont besoin que de la connexion à l'instance ; un liseré **rouge** signale les outils sensibles ; un badge **Bêta** signale une fonction encore en phase de test (à utiliser avec précaution, sur une copie de la base de préférence).
 
 ### Colonne de connexion
 

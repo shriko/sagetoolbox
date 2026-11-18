@@ -61,8 +61,11 @@
                             <TextBox x:Name="SpcUserInput" />
                             <TextBlock Text="Mot de passe" Style="{StaticResource SectionLabel}" />
                             <PasswordBox x:Name="SpcPasswordBox" />
+                            <Button x:Name="SpcDetectButton" Content="Détecter sur ce poste" Style="{StaticResource SecondaryButton}"
+                                    Margin="0,10,0,0" HorizontalContentAlignment="Center" ToolTip="Retrouve le serveur, la base et le mot de passe SPC configurés par Sage 100 sur ce poste"
+                                    Click="SpcDetectButton_Click" />
                             <Button x:Name="SpcConnectButton" Content="Connecter" Style="{StaticResource ActionButton}"
-                                    Margin="0,10,0,0" HorizontalContentAlignment="Center" Click="SpcConnectButton_Click" />
+                                    Margin="0,6,0,0" HorizontalContentAlignment="Center" Click="SpcConnectButton_Click" />
                             <StackPanel x:Name="SpcCompanyPanel" Visibility="Collapsed">
                                 <TextBlock Text="Société" Style="{StaticResource SectionLabel}" />
                                 <ComboBox x:Name="SpcCompanyCombo" DisplayMemberPath="Name" SelectionChanged="SpcCompanyCombo_SelectionChanged" />

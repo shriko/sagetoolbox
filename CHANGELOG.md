@@ -2,6 +2,11 @@
 
 Les versions sont publiées sur [GitHub](https://github.com/shriko/sagetoolbox/releases). Au démarrage, l'application propose d'installer la dernière version disponible.
 
+## [1.3.1] — 2026-11-18
+
+### Nouveautés
+- **Détection automatique SPC** : au démarrage, si le poste est relié à Sage Partner Cloud, l'outil retrouve le serveur Azure, la base et le mot de passe configurés par Sage 100, passe en mode SPC et se connecte tout seul. Bouton « Détecter sur ce poste » pour relancer la détection.
+
 ## [1.3.0] — 2026-11-16
 
 ### Nouveautés

@@ -78,6 +78,7 @@ public partial class MainWindow : Window
         Closed += (_, _) => Logger.Instance.EntryLogged -= OnLogEntry;
 
         Logger.Instance.Info("Sage Toolbox démarré.");
+        Loaded += async (_, _) => await DetectSpcAsync(automatic: true);
     }
 
     private void OnLogEntry(LogEntry entry)
@@ -293,6 +294,33 @@ public partial class MainWindow : Window
         var spc = ModeSpcRadio.IsChecked == true;
         OnPremisePanel.Visibility = spc ? Visibility.Collapsed : Visibility.Visible;
         SpcPanel.Visibility = spc ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void SpcDetectButton_Click(object sender, RoutedEventArgs e) => await DetectSpcAsync(automatic: false);
+
+    /// <summary>Cherche une configuration SPC sur le poste (registre Sage 100) et, si elle existe, passe en mode SPC,
+    /// renseigne les champs et se connecte. Au démarrage (automatic), un poste sans SPC reste silencieux.</summary>
+    private async Task DetectSpcAsync(bool automatic)
+    {
+        var found = await Task.Run(SpcDetector.Detect);
+        if (found.Count == 0)
+        {
+            if (!automatic) Logger.Instance.Warning("SPC : aucun environnement Sage Partner Cloud détecté sur ce poste.");
+            return;
+        }
+
+        var saved = ConfigManager.Instance.Config.SpcDatabase;
+        var db = found.FirstOrDefault(d => string.Equals(d.Database, saved, StringComparison.OrdinalIgnoreCase)) ?? found[0];
+        Logger.Instance.Info($"Environnement SPC détecté : {db.Server} / {db.Database}.");
+        if (found.Count > 1)
+            Logger.Instance.Info($"{found.Count} bases SPC détectées ({string.Join(", ", found.Select(d => d.Database))}) : {db.Database} utilisée.");
+
+        ModeSpcRadio.IsChecked = true;
+        SpcServerInput.Text = db.Server;
+        SpcDatabaseInput.Text = db.Database;
+        SpcUserInput.Text = db.Login;
+        SpcPasswordBox.Password = db.Password;
+        await ConnectSpcAsync(DatabaseManager.BuildSpcConnectionString(db.Server, db.Database, db.Login, db.Password));
     }
 
     private async void SpcConnectButton_Click(object sender, RoutedEventArgs e)
